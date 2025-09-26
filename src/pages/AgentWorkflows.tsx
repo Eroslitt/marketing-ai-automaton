@@ -38,7 +38,18 @@ export const AgentWorkflows = () => {
       successRate: 89,
       totalRuns: 156,
       triggers: ["new_campaign", "manual"],
-      conditions: ["budget > 1000", "audience_defined"]
+      conditions: ["budget > 1000", "audience_defined"],
+      events: [
+        { timestamp: "14:30:00", agent: "strategy", event: "strategy_completed", payload: { strategy_id: "str_001" } },
+        { timestamp: "14:35:20", agent: "copy", event: "copy_generated", payload: { variations: 15 } },
+        { timestamp: "14:41:05", agent: "creative", event: "creatives_ready", payload: { assets: 8 } },
+        { timestamp: "14:45:12", agent: "media", event: "campaign_publishing", payload: { platform: "meta" } }
+      ],
+      performance: {
+        reward_score: 0.89,
+        learning_rate: 0.001,
+        model_version: "v2.3.1"
+      }
     },
     {
       id: 2, 
