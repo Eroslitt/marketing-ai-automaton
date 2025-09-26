@@ -27,6 +27,10 @@ const navigation = [
   { name: "CRM Pipeline", href: "/projects", icon: Briefcase },
   { name: "Analytics", href: "/analytics", icon: TrendingUp },
   { name: "Integrações", href: "/integrations", icon: Link },
+  { name: "Workflows", href: "/workflows", icon: Zap },
+  { name: "Agent Studio", href: "/agent-studio", icon: Zap },
+  { name: "Automações", href: "/automation", icon: Zap },
+  { name: "Usuários", href: "/users", icon: Users },
   { name: "Prompts IA", href: "/agent-prompts", icon: Zap },
   { name: "Configurações", href: "/settings", icon: Settings },
 ];

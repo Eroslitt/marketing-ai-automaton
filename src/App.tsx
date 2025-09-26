@@ -14,6 +14,10 @@ import { Prospects } from "./pages/Prospects";
 import { WhatsAppInbox } from "./pages/WhatsAppInbox";
 import { CRM } from "./pages/CRM";
 import { Integrations } from "./pages/Integrations";
+import { AgentWorkflows } from "./pages/AgentWorkflows";
+import { UserManagement } from "./pages/UserManagement"; 
+import { AgentStudio } from "./pages/AgentStudio";
+import { AutomationCenter } from "./pages/AutomationCenter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +39,10 @@ const App = () => (
             <Route path="projects" element={<CRM />} />
             <Route path="analytics" element={<Dashboard />} />
             <Route path="integrations" element={<Integrations />} />
+            <Route path="workflows" element={<AgentWorkflows />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="agent-studio" element={<AgentStudio />} />
+            <Route path="automation" element={<AutomationCenter />} />
             <Route path="settings" element={<Settings />} />
             <Route path="agent-prompts" element={<AgentPrompts />} />
           </Route>
