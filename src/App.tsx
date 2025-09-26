@@ -9,6 +9,7 @@ import { Campaigns } from "./pages/Campaigns";
 import { CreateCampaign } from "./pages/CreateCampaign";
 import { Creatives } from "./pages/Creatives";
 import { Settings } from "./pages/Settings";
+import { AgentPrompts } from "./pages/AgentPrompts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="projects" element={<Dashboard />} />
             <Route path="analytics" element={<Dashboard />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="agent-prompts" element={<AgentPrompts />} />
           </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

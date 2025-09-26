@@ -1,0 +1,300 @@
+import { useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Bot, 
+  Play, 
+  Copy,
+  Sparkles,
+  AlertCircle,
+  CheckCircle,
+  Loader2
+} from "lucide-react";
+import { AGENT_PROMPTS, personalizePrompt, REQUIRED_VARIABLES } from "@/data/agentPrompts";
+import { useToast } from "@/hooks/use-toast";
+
+export const AgentPromptTester = () => {
+  const { toast } = useToast();
+  const [selectedAgent, setSelectedAgent] = useState<keyof typeof AGENT_PROMPTS>('strategy');
+  const [variables, setVariables] = useState<Record<string, string>>({});
+  const [result, setResult] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+
+  const currentAgent = AGENT_PROMPTS[selectedAgent];
+  const requiredVars = REQUIRED_VARIABLES[selectedAgent] || [];
+
+  const handleVariableChange = (key: string, value: string) => {
+    setVariables(prev => ({ ...prev, [key]: value }));
+  };
+
+  const validateInputs = () => {
+    const missing = requiredVars.filter(varName => !variables[varName]?.trim());
+    return missing;
+  };
+
+  const testPrompt = async () => {
+    const missing = validateInputs();
+    if (missing.length > 0) {
+      toast({
+        title: "Campos obrigatórios",
+        description: `Preencha: ${missing.join(', ')}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!apiKey.trim()) {
+      toast({
+        title: "API Key necessária",
+        description: "Insira sua chave da OpenAI para testar",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { systemPrompt, userPrompt } = personalizePrompt(selectedAgent, variables);
+      
+      // Simulação de chamada API - substitua pela implementação real
+      const response = await fetch('/api/test-agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          agentType: selectedAgent,
+          systemPrompt,
+          userPrompt
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro na API');
+      }
+
+      const data = await response.json();
+      setResult(data.response || 'Resposta simulada do agente IA...');
+      
+    } catch (error) {
+      // Para demonstração, vamos simular uma resposta
+      setTimeout(() => {
+        const { userPrompt } = personalizePrompt(selectedAgent, variables);
+        setResult(`🤖 RESPOSTA SIMULADA DO ${currentAgent.name.toUpperCase()}:\n\n` +
+          `Baseado no seu briefing, aqui está minha análise:\n\n` +
+          `[Esta é uma simulação - conecte ao Supabase para funcionalidade completa]\n\n` +
+          `Variáveis processadas:\n${Object.entries(variables)
+            .map(([k,v]) => `• ${k}: ${v}`)
+            .join('\n')}`);
+        setIsLoading(false);
+      }, 2000);
+      return;
+    }
+    
+    setIsLoading(false);
+  };
+
+  const copyPrompt = () => {
+    const { systemPrompt, userPrompt } = personalizePrompt(selectedAgent, variables);
+    const fullPrompt = `SYSTEM:\n${systemPrompt}\n\nUSER:\n${userPrompt}`;
+    navigator.clipboard.writeText(fullPrompt);
+    toast({
+      title: "Prompt copiado!",
+      description: "Prompt completo copiado para área de transferência"
+    });
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">Testador de Prompts IA</h1>
+        <p className="text-muted-foreground">Teste e refine os prompts dos agentes inteligentes</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Configuração */}
+        <div className="space-y-6">
+          {/* Seleção do Agente */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Bot className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold">Selecionar Agente</h3>
+            </div>
+            
+            <Select value={selectedAgent} onValueChange={(value) => {
+              setSelectedAgent(value as keyof typeof AGENT_PROMPTS);
+              setVariables({});
+              setResult('');
+            }}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(AGENT_PROMPTS).map(([key, agent]) => (
+                  <SelectItem key={key} value={key}>
+                    <div>
+                      <p className="font-medium">{agent.name}</p>
+                      <p className="text-xs text-muted-foreground">{agent.description}</p>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="mt-4 p-3 bg-muted/30 rounded-lg">
+              <p className="text-sm text-muted-foreground">{currentAgent.description}</p>
+            </div>
+          </Card>
+
+          {/* API Key */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertCircle className="w-5 h-5 text-warning" />
+              <h3 className="text-lg font-semibold">Configuração</h3>
+            </div>
+            
+            <div>
+              <Label htmlFor="apiKey">OpenAI API Key (para teste)</Label>
+              <Input
+                id="apiKey"
+                type="password"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk-..."
+                className="mt-2"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Temporário - conecte ao Supabase para usar secrets seguros
+              </p>
+            </div>
+          </Card>
+
+          {/* Variáveis */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold">Variáveis do Prompt</h3>
+            </div>
+            
+            <div className="space-y-4">
+              {requiredVars.map(varName => (
+                <div key={varName}>
+                  <Label htmlFor={varName} className="flex items-center gap-2">
+                    {varName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    <Badge variant="outline" className="text-xs">obrigatório</Badge>
+                  </Label>
+                  <Input
+                    id={varName}
+                    value={variables[varName] || ''}
+                    onChange={(e) => handleVariableChange(varName, e.target.value)}
+                    placeholder={`Digite ${varName.replace(/_/g, ' ')}`}
+                    className="mt-1"
+                  />
+                </div>
+              ))}
+              
+              {/* Variáveis opcionais comuns */}
+              {!requiredVars.includes('timeline') && (
+                <div>
+                  <Label htmlFor="timeline">Timeline (opcional)</Label>
+                  <Input
+                    id="timeline"
+                    value={variables.timeline || ''}
+                    onChange={(e) => handleVariableChange('timeline', e.target.value)}
+                    placeholder="Ex: 3 meses, 6 semanas"
+                    className="mt-1"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <Button 
+                onClick={testPrompt} 
+                disabled={isLoading}
+                className="flex-1"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4 mr-2" />
+                )}
+                Testar Prompt
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={copyPrompt}
+                disabled={validateInputs().length > 0}
+              >
+                <Copy className="w-4 h-4" />
+              </Button>
+            </div>
+          </Card>
+        </div>
+
+        {/* Resultado */}
+        <div className="space-y-6">
+          {/* Preview do Prompt */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <CheckCircle className="w-5 h-5 text-growth" />
+              <h3 className="text-lg font-semibold">Preview do Prompt</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">SYSTEM PROMPT:</Label>
+                <div className="mt-1 p-3 bg-muted/30 rounded-lg text-xs font-mono overflow-auto max-h-32">
+                  {currentAgent.systemPrompt}
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">USER PROMPT:</Label>
+                <div className="mt-1 p-3 bg-muted/30 rounded-lg text-xs font-mono overflow-auto max-h-32">
+                  {personalizePrompt(selectedAgent, variables).userPrompt}
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Resposta */}
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Bot className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold">Resposta do Agente</h3>
+            </div>
+            
+            {result ? (
+              <Textarea 
+                value={result}
+                readOnly
+                className="min-h-[300px] font-mono text-sm"
+              />
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                {isLoading ? (
+                  <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                    <p>Gerando resposta...</p>
+                  </div>
+                ) : (
+                  <p>Configure as variáveis e clique em "Testar Prompt"</p>
+                )}
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};

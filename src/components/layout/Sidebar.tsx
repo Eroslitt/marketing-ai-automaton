@@ -25,6 +25,7 @@ const navigation = [
   { name: "WhatsApp", href: "/whatsapp", icon: MessageSquare },
   { name: "Projetos", href: "/projects", icon: Briefcase },
   { name: "Analytics", href: "/analytics", icon: TrendingUp },
+  { name: "Prompts IA", href: "/agent-prompts", icon: Zap },
   { name: "Configurações", href: "/settings", icon: Settings },
 ];
 
