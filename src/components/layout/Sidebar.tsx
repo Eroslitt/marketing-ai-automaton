@@ -9,7 +9,14 @@ import {
   Settings,
   Zap,
   Link,
-  TrendingUp
+  TrendingUp,
+  Bot,
+  Store,
+  Video,
+  Brain,
+  Network,
+  Cog,
+  Code
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,10 +35,14 @@ const navigation = [
   { name: "Analytics", href: "/analytics", icon: TrendingUp },
   { name: "Integrações", href: "/integrations", icon: Link },
   { name: "Workflows", href: "/workflows", icon: Zap },
-  { name: "Agent Studio", href: "/agent-studio", icon: Zap },
-  { name: "Automações", href: "/automation", icon: Zap },
+  { name: "Agent Studio", href: "/agent-studio", icon: Bot },
+  { name: "Marketplace", href: "/marketplace", icon: Store },
+  { name: "Vídeo Studio", href: "/video-studio", icon: Video },
+  { name: "MLOps Center", href: "/mlops", icon: Brain },
+  { name: "Integration Hub", href: "/integration-hub", icon: Network },
+  { name: "Automações", href: "/automation", icon: Cog },
   { name: "Usuários", href: "/users", icon: Users },
-  { name: "Prompts IA", href: "/agent-prompts", icon: Zap },
+  { name: "Prompts IA", href: "/agent-prompts", icon: Code },
   { name: "Configurações", href: "/settings", icon: Settings },
 ];
 

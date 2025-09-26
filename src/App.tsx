@@ -18,6 +18,10 @@ import { AgentWorkflows } from "./pages/AgentWorkflows";
 import { UserManagement } from "./pages/UserManagement"; 
 import { AgentStudio } from "./pages/AgentStudio";
 import { AutomationCenter } from "./pages/AutomationCenter";
+import Marketplace from "./pages/Marketplace";
+import VideoStudio from "./pages/VideoStudio";
+import MLOpsCenter from "./pages/MLOpsCenter";
+import IntegrationHub from "./pages/IntegrationHub";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +47,10 @@ const App = () => (
             <Route path="users" element={<UserManagement />} />
             <Route path="agent-studio" element={<AgentStudio />} />
             <Route path="automation" element={<AutomationCenter />} />
+            <Route path="marketplace" element={<Marketplace />} />
+            <Route path="video-studio" element={<VideoStudio />} />
+            <Route path="mlops" element={<MLOpsCenter />} />
+            <Route path="integration-hub" element={<IntegrationHub />} />
             <Route path="settings" element={<Settings />} />
             <Route path="agent-prompts" element={<AgentPrompts />} />
           </Route>
