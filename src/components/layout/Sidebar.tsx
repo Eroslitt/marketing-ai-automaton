@@ -8,6 +8,7 @@ import {
   Users, 
   Settings,
   Zap,
+  Link,
   TrendingUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,8 +24,9 @@ const navigation = [
   { name: "Criativos", href: "/creatives", icon: PenTool },
   { name: "Prospecção", href: "/prospects", icon: Users },
   { name: "WhatsApp", href: "/whatsapp", icon: MessageSquare },
-  { name: "Projetos", href: "/projects", icon: Briefcase },
+  { name: "CRM Pipeline", href: "/projects", icon: Briefcase },
   { name: "Analytics", href: "/analytics", icon: TrendingUp },
+  { name: "Integrações", href: "/integrations", icon: Link },
   { name: "Prompts IA", href: "/agent-prompts", icon: Zap },
   { name: "Configurações", href: "/settings", icon: Settings },
 ];

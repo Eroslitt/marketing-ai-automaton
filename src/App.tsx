@@ -10,6 +10,10 @@ import { CreateCampaign } from "./pages/CreateCampaign";
 import { Creatives } from "./pages/Creatives";
 import { Settings } from "./pages/Settings";
 import { AgentPrompts } from "./pages/AgentPrompts";
+import { Prospects } from "./pages/Prospects";
+import { WhatsAppInbox } from "./pages/WhatsAppInbox";
+import { CRM } from "./pages/CRM";
+import { Integrations } from "./pages/Integrations";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,10 +30,11 @@ const App = () => (
             <Route path="campaigns" element={<Campaigns />} />
             <Route path="campaigns/new" element={<CreateCampaign />} />
             <Route path="creatives" element={<Creatives />} />
-            <Route path="prospects" element={<Dashboard />} />
-            <Route path="whatsapp" element={<Dashboard />} />
-            <Route path="projects" element={<Dashboard />} />
+            <Route path="prospects" element={<Prospects />} />
+            <Route path="whatsapp" element={<WhatsAppInbox />} />
+            <Route path="projects" element={<CRM />} />
             <Route path="analytics" element={<Dashboard />} />
+            <Route path="integrations" element={<Integrations />} />
             <Route path="settings" element={<Settings />} />
             <Route path="agent-prompts" element={<AgentPrompts />} />
           </Route>
