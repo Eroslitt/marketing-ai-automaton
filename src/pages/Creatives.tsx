@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Select,
   SelectContent,
@@ -31,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export const Creatives = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [creatives, setCreatives] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
@@ -84,10 +86,20 @@ export const Creatives = () => {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar autenticado para criar criativos",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const { error } = await (supabase as any)
         .from('creative_assets')
         .insert([{
+          user_id: user.id,
           name: newCreative.name,
           type: newCreative.type,
           url: `https://placeholder.com/${newCreative.type}`,

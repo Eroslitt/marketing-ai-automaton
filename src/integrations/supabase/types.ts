@@ -14,7 +14,131 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      campaigns: {
+        Row: {
+          budget_spent: number | null
+          budget_total: number | null
+          created_at: string
+          end_date: string | null
+          id: string
+          name: string
+          objective: string | null
+          start_date: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget_spent?: number | null
+          budget_total?: number | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name: string
+          objective?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget_spent?: number | null
+          budget_total?: number | null
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name?: string
+          objective?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      creative_assets: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          id: string
+          name: string
+          specs: Json | null
+          type: string
+          updated_at: string
+          url: string | null
+          user_id: string
+          variant_meta: Json | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          specs?: Json | null
+          type: string
+          updated_at?: string
+          url?: string | null
+          user_id: string
+          variant_meta?: Json | null
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          specs?: Json | null
+          type?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+          variant_meta?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_assets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          score: number | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          score?: number | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          score?: number | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
