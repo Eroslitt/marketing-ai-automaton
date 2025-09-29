@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +12,39 @@ import {
   Eye,
   MoreHorizontal
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export const Campaigns = () => {
-  const [campaigns] = useState([
+  const { toast } = useToast();
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadCampaigns();
+  }, []);
+
+  const loadCampaigns = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCampaigns(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar campanhas",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const [campaignsOld] = useState([
     {
       id: 1,
       name: "Lançamento Produto X",
@@ -156,7 +186,7 @@ export const Campaigns = () => {
               </tr>
             </thead>
             <tbody>
-              {campaigns.map((campaign) => (
+              {(campaigns.length > 0 ? campaigns : campaignsOld).map((campaign) => (
                 <tr key={campaign.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                   <td className="py-4 px-2">
                     <div>

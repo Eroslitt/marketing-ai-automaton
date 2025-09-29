@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { Card } from "@/components/ui/card";
@@ -9,18 +10,56 @@ import {
   Activity,
   MessageSquare
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export const Dashboard = () => {
+  const { toast } = useToast();
+  const [stats, setStats] = useState({
+    totalSpent: 47280,
+    totalLeads: 1234,
+    activeCampaigns: 3,
+    avgROI: 4.8
+  });
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      const { data: campaigns } = await supabase
+        .from('campaigns')
+        .select('budget_spent')
+        .eq('status', 'active');
+
+      const { data: leads } = await supabase
+        .from('leads')
+        .select('id');
+
+      if (campaigns) {
+        const totalSpent = campaigns.reduce((acc, c) => acc + (c.budget_spent || 0), 0);
+        setStats(prev => ({
+          ...prev,
+          totalSpent: totalSpent || prev.totalSpent,
+          totalLeads: leads?.length || prev.totalLeads,
+          activeCampaigns: campaigns.length || prev.activeCampaigns
+        }));
+      }
+    } catch (error: any) {
+      console.error("Erro ao carregar dados:", error);
+    }
+  };
   const kpis = [
     {
       title: "Receita Gerada",
-      value: "R$ 47.280",
+      value: `R$ ${stats.totalSpent.toLocaleString('pt-BR')}`,
       change: 12.5,
       icon: DollarSign
     },
     {
       title: "Leads Qualificados",
-      value: "1.234",
+      value: stats.totalLeads.toString(),
       change: 8.2,
       icon: Users
     },
@@ -32,7 +71,7 @@ export const Dashboard = () => {
     },
     {
       title: "ROI Médio",
-      value: "4.8x",
+      value: `${stats.avgROI.toFixed(1)}x`,
       change: 15.3,
       icon: TrendingUp
     }

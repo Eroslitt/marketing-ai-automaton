@@ -23,6 +23,7 @@ import VideoStudio from "./pages/VideoStudio";
 import MLOpsCenter from "./pages/MLOpsCenter";
 import IntegrationHub from "./pages/IntegrationHub";
 import NotFound from "./pages/NotFound";
+import { Auth } from "./pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<AppLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="campaigns" element={<Campaigns />} />
