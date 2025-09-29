@@ -28,17 +28,17 @@ export const Dashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      const { data: campaigns } = await supabase
+      const { data: campaigns } = await (supabase as any)
         .from('campaigns')
         .select('budget_spent')
         .eq('status', 'active');
 
-      const { data: leads } = await supabase
+      const { data: leads } = await (supabase as any)
         .from('leads')
         .select('id');
 
       if (campaigns) {
-        const totalSpent = campaigns.reduce((acc, c) => acc + (c.budget_spent || 0), 0);
+        const totalSpent = campaigns.reduce((acc: any, c: any) => acc + (c.budget_spent || 0), 0);
         setStats(prev => ({
           ...prev,
           totalSpent: totalSpent || prev.totalSpent,

@@ -26,7 +26,7 @@ export const Campaigns = () => {
 
   const loadCampaigns = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('campaigns')
         .select('*')
         .order('created_at', { ascending: false });
