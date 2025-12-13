@@ -56,6 +56,51 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          lead_id: string
+          product_id: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          product_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          product_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creative_assets: {
         Row: {
           campaign_id: string | null
@@ -103,38 +148,198 @@ export type Database = {
           },
         ]
       }
+      knowledge_chunks: {
+        Row: {
+          content: string
+          created_at: string
+          embedding: Json | null
+          id: string
+          metadata: Json | null
+          product_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          embedding?: Json | null
+          id?: string
+          metadata?: Json | null
+          product_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          embedding?: Json | null
+          id?: string
+          metadata?: Json | null
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_chunks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
+          assigned_agent: string | null
+          company: string | null
           created_at: string
           email: string | null
           id: string
+          last_contact_at: string | null
           name: string
           phone: string | null
+          position: string | null
           score: number | null
+          sentiment: string | null
+          source: string | null
           status: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          assigned_agent?: string | null
+          company?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          last_contact_at?: string | null
           name: string
           phone?: string | null
+          position?: string | null
           score?: number | null
+          sentiment?: string | null
+          source?: string | null
           status?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          assigned_agent?: string | null
+          company?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          last_contact_at?: string | null
           name?: string
           phone?: string | null
+          position?: string | null
           score?: number | null
+          sentiment?: string | null
+          source?: string | null
           status?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          agent_type: string | null
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          role: string
+        }
+        Insert: {
+          agent_type?: string | null
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role: string
+        }
+        Update: {
+          agent_type?: string | null
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          checkout_link: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          price: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          checkout_link?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          price?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          checkout_link?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          price?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sales_metrics: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          leads_contacted: number | null
+          responses_received: number | null
+          revenue: number | null
+          sales_completed: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          leads_contacted?: number | null
+          responses_received?: number | null
+          revenue?: number | null
+          sales_completed?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          leads_contacted?: number | null
+          responses_received?: number | null
+          revenue?: number | null
+          sales_completed?: number | null
           user_id?: string
         }
         Relationships: []
