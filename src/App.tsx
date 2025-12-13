@@ -22,6 +22,7 @@ import Marketplace from "./pages/Marketplace";
 import VideoStudio from "./pages/VideoStudio";
 import MLOpsCenter from "./pages/MLOpsCenter";
 import IntegrationHub from "./pages/IntegrationHub";
+import SalesDashboard from "./pages/SalesDashboard";
 import NotFound from "./pages/NotFound";
 import { Auth } from "./pages/Auth";
 
@@ -53,6 +54,7 @@ const App = () => (
             <Route path="video-studio" element={<VideoStudio />} />
             <Route path="mlops" element={<MLOpsCenter />} />
             <Route path="integration-hub" element={<IntegrationHub />} />
+            <Route path="sales" element={<SalesDashboard />} />
             <Route path="settings" element={<Settings />} />
             <Route path="agent-prompts" element={<AgentPrompts />} />
           </Route>
