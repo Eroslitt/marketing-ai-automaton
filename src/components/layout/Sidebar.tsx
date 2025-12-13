@@ -16,7 +16,8 @@ import {
   Brain,
   Network,
   Cog,
-  Code
+  Code,
+  Rocket
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ interface SidebarProps {
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: BarChart3 },
+  { name: "SalesCore AI", href: "/sales", icon: Rocket },
   { name: "Campanhas", href: "/campaigns", icon: Target },
   { name: "Criativos", href: "/creatives", icon: PenTool },
   { name: "Prospecção", href: "/prospects", icon: Users },
