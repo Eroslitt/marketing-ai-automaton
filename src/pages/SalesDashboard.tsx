@@ -27,6 +27,10 @@ import LiveSalesFeed from "@/components/sales/LiveSalesFeed";
 import SalesMetricsChart from "@/components/sales/SalesMetricsChart";
 import AgentStatusPanel from "@/components/sales/AgentStatusPanel";
 import ProductsManager from "@/components/sales/ProductsManager";
+import OptimizationLab from "@/components/sales/OptimizationLab";
+import SafetyCenter from "@/components/sales/SafetyCenter";
+import VoiceAgent from "@/components/sales/VoiceAgent";
+import PsychologyPanel from "@/components/sales/PsychologyPanel";
 
 const SalesDashboard = () => {
   const { user } = useAuth();
@@ -169,6 +173,14 @@ const SalesDashboard = () => {
               <Zap className="h-4 w-4" />
               Live Sales
             </TabsTrigger>
+            <TabsTrigger value="optimization" className="gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Otimização
+            </TabsTrigger>
+            <TabsTrigger value="safety" className="gap-2">
+              <Target className="h-4 w-4" />
+              Segurança
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -177,8 +189,9 @@ const SalesDashboard = () => {
               <div className="lg:col-span-2">
                 <SalesMetricsChart />
               </div>
-              <div>
+              <div className="space-y-6">
                 <AgentStatusPanel />
+                <VoiceAgent />
               </div>
             </div>
           </TabsContent>
@@ -193,12 +206,27 @@ const SalesDashboard = () => {
 
           {/* Agents Tab */}
           <TabsContent value="agents" className="space-y-6">
-            <AgentStatusPanel fullView />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <AgentStatusPanel fullView />
+              </div>
+              <PsychologyPanel />
+            </div>
           </TabsContent>
 
           {/* Live Sales Tab */}
           <TabsContent value="live" className="space-y-6">
             <LiveSalesFeed />
+          </TabsContent>
+
+          {/* Optimization Tab */}
+          <TabsContent value="optimization" className="space-y-6">
+            <OptimizationLab />
+          </TabsContent>
+
+          {/* Safety Tab */}
+          <TabsContent value="safety" className="space-y-6">
+            <SafetyCenter />
           </TabsContent>
         </Tabs>
       </div>
