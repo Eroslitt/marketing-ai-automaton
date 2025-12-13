@@ -148,6 +148,36 @@ export type Database = {
           },
         ]
       }
+      integrations: {
+        Row: {
+          config: Json | null
+          created_at: string
+          id: string
+          is_connected: boolean | null
+          last_sync_at: string | null
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_connected?: boolean | null
+          last_sync_at?: string | null
+          provider: string
+          user_id: string
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string
+          id?: string
+          is_connected?: boolean | null
+          last_sync_at?: string | null
+          provider?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       knowledge_chunks: {
         Row: {
           content: string
@@ -179,6 +209,50 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_psychology: {
+        Row: {
+          analyzed_at: string
+          big5_scores: Json | null
+          communication_style: string | null
+          created_at: string
+          disc_profile: string | null
+          disc_scores: Json | null
+          id: string
+          lead_id: string
+          prompt_injection: string | null
+        }
+        Insert: {
+          analyzed_at?: string
+          big5_scores?: Json | null
+          communication_style?: string | null
+          created_at?: string
+          disc_profile?: string | null
+          disc_scores?: Json | null
+          id?: string
+          lead_id: string
+          prompt_injection?: string | null
+        }
+        Update: {
+          analyzed_at?: string
+          big5_scores?: Json | null
+          communication_style?: string | null
+          created_at?: string
+          disc_profile?: string | null
+          disc_scores?: Json | null
+          id?: string
+          lead_id?: string
+          prompt_injection?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_psychology_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -311,6 +385,87 @@ export type Database = {
         }
         Relationships: []
       }
+      safety_rules: {
+        Row: {
+          action: string | null
+          condition: Json
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          rule_type: string | null
+          user_id: string
+          violations_count: number | null
+        }
+        Insert: {
+          action?: string | null
+          condition: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          rule_type?: string | null
+          user_id: string
+          violations_count?: number | null
+        }
+        Update: {
+          action?: string | null
+          condition?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          rule_type?: string | null
+          user_id?: string
+          violations_count?: number | null
+        }
+        Relationships: []
+      }
+      safety_violations: {
+        Row: {
+          action_taken: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          original_message: string | null
+          rule_id: string
+          violation_reason: string | null
+        }
+        Insert: {
+          action_taken?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          original_message?: string | null
+          rule_id: string
+          violation_reason?: string | null
+        }
+        Update: {
+          action_taken?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          original_message?: string | null
+          rule_id?: string
+          violation_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_violations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "safety_violations_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "safety_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_metrics: {
         Row: {
           created_at: string
@@ -343,6 +498,166 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      sales_script_variants: {
+        Row: {
+          agent_type: string
+          content: string
+          conversion_rate: number | null
+          conversions: number | null
+          created_at: string
+          id: string
+          impressions: number | null
+          is_champion: boolean | null
+          name: string
+          parent_id: string | null
+          tone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_type: string
+          content: string
+          conversion_rate?: number | null
+          conversions?: number | null
+          created_at?: string
+          id?: string
+          impressions?: number | null
+          is_champion?: boolean | null
+          name: string
+          parent_id?: string | null
+          tone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_type?: string
+          content?: string
+          conversion_rate?: number | null
+          conversions?: number | null
+          created_at?: string
+          id?: string
+          impressions?: number | null
+          is_champion?: boolean | null
+          name?: string
+          parent_id?: string | null
+          tone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_script_variants_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "sales_script_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      script_evolution_log: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metrics: Json | null
+          new_champion_id: string | null
+          old_champion_id: string | null
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metrics?: Json | null
+          new_champion_id?: string | null
+          old_champion_id?: string | null
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metrics?: Json | null
+          new_champion_id?: string | null
+          old_champion_id?: string | null
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "script_evolution_log_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "sales_script_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_calls: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          direction: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          latency_avg_ms: number | null
+          lead_id: string | null
+          phone_number: string
+          recording_url: string | null
+          sentiment: string | null
+          started_at: string | null
+          status: string | null
+          transcript: string | null
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          direction?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          latency_avg_ms?: number | null
+          lead_id?: string | null
+          phone_number: string
+          recording_url?: string | null
+          sentiment?: string | null
+          started_at?: string | null
+          status?: string | null
+          transcript?: string | null
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          direction?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          latency_avg_ms?: number | null
+          lead_id?: string | null
+          phone_number?: string
+          recording_url?: string | null
+          sentiment?: string | null
+          started_at?: string | null
+          status?: string | null
+          transcript?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_calls_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voice_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
