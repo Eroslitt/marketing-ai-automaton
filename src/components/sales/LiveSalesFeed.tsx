@@ -14,10 +14,21 @@ import {
   Mail, 
   Zap,
   RefreshCw,
-  Eye
+  Eye,
+  UserPlus,
+  Filter,
+  Target,
+  Settings,
+  GitBranch
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import NewLeadDialog from "./dialogs/NewLeadDialog";
+import FilterDialog from "./dialogs/FilterDialog";
+import BotConfigDialog from "./dialogs/BotConfigDialog";
+import AutoResponseDialog from "./dialogs/AutoResponseDialog";
+import NewSequenceDialog from "./dialogs/NewSequenceDialog";
+import StartProspectingDialog from "./dialogs/StartProspectingDialog";
 
 interface Message {
   id: string;
@@ -46,6 +57,14 @@ const LiveSalesFeed = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Dialog states
+  const [newLeadOpen, setNewLeadOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [botConfigOpen, setBotConfigOpen] = useState(false);
+  const [autoResponseOpen, setAutoResponseOpen] = useState(false);
+  const [newSequenceOpen, setNewSequenceOpen] = useState(false);
+  const [prospectingOpen, setProspectingOpen] = useState(false);
 
   useEffect(() => {
     loadConversations();
@@ -132,148 +151,215 @@ const LiveSalesFeed = () => {
   const selectedConvo = conversations.find(c => c.id === selectedConversation);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Conversations List */}
-      <Card className="lg:col-span-1 border-border/50 bg-card/50 backdrop-blur">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-amber-500" />
-              Conversas Ativas
-            </CardTitle>
-            <CardDescription>
-              Vendas em tempo real
-            </CardDescription>
-          </div>
-          <Button variant="ghost" size="icon" onClick={loadConversations}>
-            <RefreshCw className="h-4 w-4" />
+    <>
+      <div className="space-y-4">
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={() => setNewLeadOpen(true)} className="gap-2">
+            <UserPlus className="h-4 w-4" />
+            Novo Lead
           </Button>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[500px]">
-            <div className="space-y-3">
-              {loading ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Carregando...
+          <Button variant="outline" onClick={() => setBotConfigOpen(true)} className="gap-2">
+            <Settings className="h-4 w-4" />
+            Configurar Bot
+          </Button>
+          <Button variant="outline" onClick={() => setAutoResponseOpen(true)} className="gap-2">
+            <Zap className="h-4 w-4" />
+            Auto Resposta
+          </Button>
+          <Button variant="outline" onClick={() => setNewSequenceOpen(true)} className="gap-2">
+            <GitBranch className="h-4 w-4" />
+            Nova Sequência
+          </Button>
+          <Button variant="outline" onClick={() => setProspectingOpen(true)} className="gap-2">
+            <Target className="h-4 w-4" />
+            Iniciar Prospecção
+          </Button>
+          <Button variant="outline" onClick={() => setFilterOpen(true)} className="gap-2">
+            <Filter className="h-4 w-4" />
+            Filtrar
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Conversations List */}
+          <Card className="lg:col-span-1 border-border/50 bg-card/50 backdrop-blur">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-amber-500" />
+                  Conversas Ativas
+                </CardTitle>
+                <CardDescription>
+                  Vendas em tempo real
+                </CardDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={loadConversations}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px]">
+                <div className="space-y-3">
+                  {loading ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Carregando...
+                    </div>
+                  ) : conversations.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Bot className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                      <p className="text-muted-foreground">
+                        Nenhuma conversa ativa no momento
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Os agentes iniciarão as vendas automaticamente
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-4"
+                        onClick={() => setProspectingOpen(true)}
+                      >
+                        Iniciar Prospecção
+                      </Button>
+                    </div>
+                  ) : (
+                    conversations.map((conv) => (
+                      <div
+                        key={conv.id}
+                        onClick={() => setSelectedConversation(conv.id)}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                          selectedConversation === conv.id
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border/50 hover:border-primary/50 bg-background/50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback className="bg-primary/10 text-primary">
+                                {conv.lead?.name?.charAt(0) || 'L'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {conv.lead?.name || 'Lead'}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                {getChannelIcon(conv.channel)}
+                                <span className="text-xs text-muted-foreground">
+                                  {formatDistanceToNow(new Date(conv.created_at), { 
+                                    addSuffix: true, 
+                                    locale: ptBR 
+                                  })}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
+                            Ativa
+                          </Badge>
+                        </div>
+                        {conv.messages.length > 0 && (
+                          <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
+                            {conv.messages[conv.messages.length - 1]?.content}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
-              ) : conversations.length === 0 ? (
-                <div className="text-center py-8">
-                  <Bot className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                  <p className="text-muted-foreground">
-                    Nenhuma conversa ativa no momento
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Os agentes iniciarão as vendas automaticamente
-                  </p>
-                </div>
-              ) : (
-                conversations.map((conv) => (
-                  <div
-                    key={conv.id}
-                    onClick={() => setSelectedConversation(conv.id)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                      selectedConversation === conv.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border/50 hover:border-primary/50 bg-background/50'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {conv.lead?.name?.charAt(0) || 'L'}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          {/* Conversation Detail */}
+          <Card className="lg:col-span-2 border-border/50 bg-card/50 backdrop-blur">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-primary" />
+                {selectedConvo ? `Conversa com ${selectedConvo.lead?.name || 'Lead'}` : 'Selecione uma conversa'}
+              </CardTitle>
+              <CardDescription>
+                Acompanhe a negociação em tempo real
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[500px]">
+                {selectedConvo ? (
+                  <div className="space-y-4">
+                    {selectedConvo.messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`flex gap-3 ${msg.role === 'assistant' ? '' : 'flex-row-reverse'}`}
+                      >
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className={msg.role === 'assistant' ? 'bg-primary/10 text-primary' : 'bg-muted'}>
+                            {msg.role === 'assistant' ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className="font-medium text-foreground">
-                            {conv.lead?.name || 'Lead'}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {getChannelIcon(conv.channel)}
+                        <div className={`max-w-[70%] ${msg.role === 'assistant' ? '' : 'text-right'}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            {msg.role === 'assistant' && getAgentBadge(msg.agent_type)}
                             <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(conv.created_at), { 
+                              {formatDistanceToNow(new Date(msg.created_at), { 
                                 addSuffix: true, 
                                 locale: ptBR 
                               })}
                             </span>
                           </div>
+                          <div className={`p-3 rounded-xl ${
+                            msg.role === 'assistant' 
+                              ? 'bg-primary/10 text-foreground' 
+                              : 'bg-muted text-foreground'
+                          }`}>
+                            <p className="text-sm">{msg.content}</p>
+                          </div>
                         </div>
                       </div>
-                      <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
-                        Ativa
-                      </Badge>
-                    </div>
-                    {conv.messages.length > 0 && (
-                      <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
-                        {conv.messages[conv.messages.length - 1]?.content}
-                      </p>
-                    )}
+                    ))}
                   </div>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <div className="text-center">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                      <p>Selecione uma conversa para visualizar</p>
+                    </div>
+                  </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-      {/* Conversation Detail */}
-      <Card className="lg:col-span-2 border-border/50 bg-card/50 backdrop-blur">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Eye className="h-5 w-5 text-primary" />
-            {selectedConvo ? `Conversa com ${selectedConvo.lead?.name || 'Lead'}` : 'Selecione uma conversa'}
-          </CardTitle>
-          <CardDescription>
-            Acompanhe a negociação em tempo real
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[500px]">
-            {selectedConvo ? (
-              <div className="space-y-4">
-                {selectedConvo.messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex gap-3 ${msg.role === 'assistant' ? '' : 'flex-row-reverse'}`}
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className={msg.role === 'assistant' ? 'bg-primary/10 text-primary' : 'bg-muted'}>
-                        {msg.role === 'assistant' ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className={`max-w-[70%] ${msg.role === 'assistant' ? '' : 'text-right'}`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        {msg.role === 'assistant' && getAgentBadge(msg.agent_type)}
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(msg.created_at), { 
-                            addSuffix: true, 
-                            locale: ptBR 
-                          })}
-                        </span>
-                      </div>
-                      <div className={`p-3 rounded-xl ${
-                        msg.role === 'assistant' 
-                          ? 'bg-primary/10 text-foreground' 
-                          : 'bg-muted text-foreground'
-                      }`}>
-                        <p className="text-sm">{msg.content}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                <div className="text-center">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p>Selecione uma conversa para visualizar</p>
-                </div>
-              </div>
-            )}
-          </ScrollArea>
-        </CardContent>
-      </Card>
-    </div>
+      {/* Dialogs */}
+      <NewLeadDialog 
+        open={newLeadOpen} 
+        onOpenChange={setNewLeadOpen}
+        onLeadCreated={loadConversations}
+      />
+      <FilterDialog 
+        open={filterOpen} 
+        onOpenChange={setFilterOpen}
+      />
+      <BotConfigDialog 
+        open={botConfigOpen} 
+        onOpenChange={setBotConfigOpen}
+      />
+      <AutoResponseDialog 
+        open={autoResponseOpen} 
+        onOpenChange={setAutoResponseOpen}
+      />
+      <NewSequenceDialog 
+        open={newSequenceOpen} 
+        onOpenChange={setNewSequenceOpen}
+      />
+      <StartProspectingDialog 
+        open={prospectingOpen} 
+        onOpenChange={setProspectingOpen}
+      />
+    </>
   );
 };
 
