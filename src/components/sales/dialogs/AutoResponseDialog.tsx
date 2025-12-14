@@ -84,12 +84,12 @@ const AutoResponseDialog = ({ open, onOpenChange }: AutoResponseDialogProps) => 
         .eq('provider', 'auto_responses')
         .single();
 
-      const configData = { responses: responses.map(r => ({ ...r })) } as unknown as Record<string, unknown>;
+      const configData = { responses: responses.map(r => ({ id: r.id, trigger: r.trigger, response: r.response, isActive: r.isActive })) };
 
       if (existing) {
         await supabase
           .from('integrations')
-          .update({ config: configData })
+          .update({ config: configData as any })
           .eq('id', existing.id);
       } else {
         await supabase
@@ -97,7 +97,7 @@ const AutoResponseDialog = ({ open, onOpenChange }: AutoResponseDialogProps) => 
           .insert([{
             user_id: user?.id!,
             provider: 'auto_responses',
-            config: configData,
+            config: configData as any,
             is_connected: true
           }]);
       }

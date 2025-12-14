@@ -102,16 +102,16 @@ const NewSequenceDialog = ({ open, onOpenChange }: NewSequenceDialogProps) => {
     try {
       const configData = {
         name: sequenceName,
-        steps: steps.map(s => ({ ...s })),
+        steps: steps.map(s => ({ id: s.id, type: s.type, delay: s.delay, delayUnit: s.delayUnit, content: s.content })),
         createdAt: new Date().toISOString()
-      } as unknown as Record<string, unknown>;
+      };
       
       await supabase
         .from('integrations')
         .insert([{
           user_id: user?.id!,
           provider: 'sequence_' + Date.now(),
-          config: configData
+          config: configData as any,
           is_connected: true
         }]);
 

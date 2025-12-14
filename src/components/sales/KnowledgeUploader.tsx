@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -25,7 +25,7 @@ const KnowledgeUploader = () => {
   const [chunksCreated, setChunksCreated] = useState(0);
 
   // Load products on mount
-  useState(() => {
+  useEffect(() => {
     const loadProducts = async () => {
       if (!user) return;
       const { data } = await supabase
@@ -35,7 +35,7 @@ const KnowledgeUploader = () => {
       if (data) setProducts(data);
     };
     loadProducts();
-  });
+  }, [user]);
 
   const processKnowledge = async () => {
     if (!selectedProduct || !textContent.trim()) {

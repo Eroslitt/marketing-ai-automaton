@@ -18,6 +18,9 @@ import {
   TrendingUp,
   Settings
 } from "lucide-react";
+import AgentConfigDialog from "./dialogs/AgentConfigDialog";
+import AgentLogsDialog from "./dialogs/AgentLogsDialog";
+import ControlPanelDialog from "./dialogs/ControlPanelDialog";
 
 interface Agent {
   id: string;
@@ -87,10 +90,25 @@ const AgentStatusPanel = ({ fullView = false }: AgentStatusPanelProps) => {
     }
   ]);
 
+  const [configDialogOpen, setConfigDialogOpen] = useState(false);
+  const [logsDialogOpen, setLogsDialogOpen] = useState(false);
+  const [controlPanelOpen, setControlPanelOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+
   const toggleAgent = (agentId: string) => {
     setAgents(prev => prev.map(agent => 
       agent.id === agentId ? { ...agent, active: !agent.active } : agent
     ));
+  };
+
+  const openConfigDialog = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setConfigDialogOpen(true);
+  };
+
+  const openLogsDialog = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setLogsDialogOpen(true);
   };
 
   const totalActive = agents.filter(a => a.active).length;
@@ -138,102 +156,130 @@ const AgentStatusPanel = ({ fullView = false }: AgentStatusPanelProps) => {
 
   // Full view for agents tab
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {agents.map((agent) => (
-        <Card key={agent.id} className="border-border/50 bg-card/50 backdrop-blur">
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`p-3 rounded-xl ${agent.bgColor}`}>
-                  <agent.icon className={`h-6 w-6 ${agent.color}`} />
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {agents.map((agent) => (
+          <Card key={agent.id} className="border-border/50 bg-card/50 backdrop-blur">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-xl ${agent.bgColor}`}>
+                    <agent.icon className={`h-6 w-6 ${agent.color}`} />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">{agent.name}</CardTitle>
+                    <CardDescription>{agent.role}</CardDescription>
+                  </div>
+                </div>
+                <Switch 
+                  checked={agent.active} 
+                  onCheckedChange={() => toggleAgent(agent.id)}
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {agent.description}
+              </p>
+
+              <Separator className="bg-border/50" />
+
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-xl font-bold text-foreground">{agent.stats.tasksCompleted}</p>
+                  <p className="text-xs text-muted-foreground">Tarefas</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-green-500">{agent.stats.successRate}%</p>
+                  <p className="text-xs text-muted-foreground">Sucesso</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-primary">{agent.stats.activeConversations}</p>
+                  <p className="text-xs text-muted-foreground">Ativas</p>
+                </div>
+              </div>
+
+              {/* Performance bar */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Performance</span>
+                  <span className="text-foreground font-medium">{agent.stats.successRate}%</span>
+                </div>
+                <Progress value={agent.stats.successRate} className="h-2" />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1 gap-2"
+                  onClick={() => openConfigDialog(agent)}
+                >
+                  <Settings className="h-4 w-4" />
+                  Configurar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1 gap-2"
+                  onClick={() => openLogsDialog(agent)}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Ver Logs
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {/* System Status Card */}
+        <Card className="md:col-span-2 border-border/50 bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-4 rounded-xl bg-primary/20">
+                  <Zap className="h-8 w-8 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-lg">{agent.name}</CardTitle>
-                  <CardDescription>{agent.role}</CardDescription>
+                  <h3 className="text-xl font-bold text-foreground">Sistema de Multi-Agentes</h3>
+                  <p className="text-muted-foreground">
+                    {totalActive} agentes ativos • {totalConversations} conversas em andamento
+                  </p>
                 </div>
               </div>
-              <Switch 
-                checked={agent.active} 
-                onCheckedChange={() => toggleAgent(agent.id)}
-              />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {agent.description}
-            </p>
-
-            <Separator className="bg-border/50" />
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <p className="text-xl font-bold text-foreground">{agent.stats.tasksCompleted}</p>
-                <p className="text-xs text-muted-foreground">Tarefas</p>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-3xl font-bold text-green-500">98.7%</p>
+                  <p className="text-sm text-muted-foreground">Uptime</p>
+                </div>
+                <Button className="gap-2" onClick={() => setControlPanelOpen(true)}>
+                  <Power className="h-4 w-4" />
+                  Painel de Controle
+                </Button>
               </div>
-              <div className="text-center">
-                <p className="text-xl font-bold text-green-500">{agent.stats.successRate}%</p>
-                <p className="text-xs text-muted-foreground">Sucesso</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xl font-bold text-primary">{agent.stats.activeConversations}</p>
-                <p className="text-xs text-muted-foreground">Ativas</p>
-              </div>
-            </div>
-
-            {/* Performance bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Performance</span>
-                <span className="text-foreground font-medium">{agent.stats.successRate}%</span>
-              </div>
-              <Progress value={agent.stats.successRate} className="h-2" />
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1 gap-2">
-                <Settings className="h-4 w-4" />
-                Configurar
-              </Button>
-              <Button variant="outline" size="sm" className="flex-1 gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Ver Logs
-              </Button>
             </div>
           </CardContent>
         </Card>
-      ))}
+      </div>
 
-      {/* System Status Card */}
-      <Card className="md:col-span-2 border-border/50 bg-gradient-to-r from-primary/5 to-primary/10 backdrop-blur">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-4 rounded-xl bg-primary/20">
-                <Zap className="h-8 w-8 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-foreground">Sistema de Multi-Agentes</h3>
-                <p className="text-muted-foreground">
-                  {totalActive} agentes ativos • {totalConversations} conversas em andamento
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-3xl font-bold text-green-500">98.7%</p>
-                <p className="text-sm text-muted-foreground">Uptime</p>
-              </div>
-              <Button className="gap-2">
-                <Power className="h-4 w-4" />
-                Painel de Controle
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+      {/* Dialogs */}
+      <AgentConfigDialog 
+        open={configDialogOpen} 
+        onOpenChange={setConfigDialogOpen}
+        agent={selectedAgent}
+      />
+      <AgentLogsDialog 
+        open={logsDialogOpen} 
+        onOpenChange={setLogsDialogOpen}
+        agent={selectedAgent}
+      />
+      <ControlPanelDialog
+        open={controlPanelOpen}
+        onOpenChange={setControlPanelOpen}
+      />
+    </>
   );
 };
 
