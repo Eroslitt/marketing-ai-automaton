@@ -1,9 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useConversation } from "@elevenlabs/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { 
@@ -15,7 +17,10 @@ import {
   Volume2,
   Loader2,
   Zap,
-  Settings
+  Settings,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from "lucide-react";
 
 interface VoiceAgentProps {
@@ -23,11 +28,63 @@ interface VoiceAgentProps {
 }
 
 const VoiceAgent = ({ onSpeakingChange }: VoiceAgentProps) => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [agentId, setAgentId] = useState('');
-  const [status, setStatus] = useState<'idle' | 'connecting' | 'connected' | 'speaking' | 'listening'>('idle');
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [volume, setVolume] = useState([0.8]);
+  const [configStatus, setConfigStatus] = useState<'checking' | 'configured' | 'not_configured'>('checking');
+
+  // ElevenLabs Conversational AI hook
+  const conversation = useConversation({
+    onConnect: () => {
+      console.log('ElevenLabs: Connected');
+      toast.success('Conectado ao agente de voz!');
+    },
+    onDisconnect: () => {
+      console.log('ElevenLabs: Disconnected');
+      toast.info('Conversa encerrada');
+      onSpeakingChange?.(false);
+    },
+    onMessage: (message) => {
+      console.log('ElevenLabs Message:', message);
+    },
+    onError: (error) => {
+      console.error('ElevenLabs Error:', error);
+      const errorMessage = typeof error === 'string' ? error : 'Erro desconhecido';
+      toast.error('Erro na conexão: ' + errorMessage);
+    },
+  });
+
+  // Check if API key is configured
+  useEffect(() => {
+    const checkConfig = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('voice-realtime', {
+          body: { action: 'check_config' }
+        });
+        
+        if (data?.configured) {
+          setConfigStatus('configured');
+        } else {
+          setConfigStatus('not_configured');
+        }
+      } catch {
+        setConfigStatus('not_configured');
+      }
+    };
+    checkConfig();
+  }, []);
+
+  // Update speaking state when agent is speaking
+  useEffect(() => {
+    onSpeakingChange?.(conversation.isSpeaking);
+  }, [conversation.isSpeaking, onSpeakingChange]);
+
+  // Update volume
+  useEffect(() => {
+    if (conversation.status === 'connected') {
+      conversation.setVolume({ volume: volume[0] });
+    }
+  }, [volume, conversation]);
 
   const startConversation = useCallback(async () => {
     if (!agentId.trim()) {
@@ -36,7 +93,6 @@ const VoiceAgent = ({ onSpeakingChange }: VoiceAgentProps) => {
     }
 
     setIsConnecting(true);
-    setStatus('connecting');
 
     try {
       // Request microphone permission
@@ -51,6 +107,7 @@ const VoiceAgent = ({ onSpeakingChange }: VoiceAgentProps) => {
 
       if (data.setup_required) {
         toast.error(data.message);
+        setConfigStatus('not_configured');
         return;
       }
 
@@ -58,75 +115,120 @@ const VoiceAgent = ({ onSpeakingChange }: VoiceAgentProps) => {
         throw new Error('Token não recebido');
       }
 
-      // Here we would initialize the ElevenLabs conversation
-      // This requires the @elevenlabs/react package
-      toast.success('Conexão estabelecida! (Integração ElevenLabs requer configuração adicional)');
-      setIsConnected(true);
-      setStatus('connected');
+      // Start conversation with ElevenLabs using the token
+      await conversation.startSession({
+        conversationToken: data.token,
+        connectionType: 'webrtc',
+      });
 
     } catch (error) {
       console.error('Error starting conversation:', error);
       toast.error(error instanceof Error ? error.message : 'Erro ao iniciar conversa');
-      setStatus('idle');
     } finally {
       setIsConnecting(false);
     }
-  }, [agentId]);
+  }, [agentId, conversation]);
 
-  const endConversation = useCallback(() => {
-    setIsConnected(false);
-    setStatus('idle');
-    onSpeakingChange?.(false);
-    toast.info('Conversa encerrada');
-  }, [onSpeakingChange]);
+  const endConversation = useCallback(async () => {
+    await conversation.endSession();
+  }, [conversation]);
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-    toast.info(isMuted ? 'Microfone ativado' : 'Microfone desativado');
+  const toggleMute = useCallback(() => {
+    // The SDK handles muting through the audio context
+    toast.info('Controle de mute via navegador');
+  }, []);
+
+  const isConnected = conversation.status === 'connected';
+  const isSpeaking = conversation.isSpeaking;
+
+  const getStatusBadge = () => {
+    switch (conversation.status) {
+      case 'connected':
+        return (
+          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Conectado
+          </Badge>
+        );
+      case 'disconnected':
+        return (
+          <Badge variant="outline" className="bg-muted text-muted-foreground">
+            Desconectado
+          </Badge>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Phone className="h-5 w-5 text-green-500" />
-          Agente de Voz IA
-        </CardTitle>
-        <CardDescription>
-          Chamadas telefônicas com IA em tempo real (ElevenLabs)
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Phone className="h-5 w-5 text-green-500" />
+              Agente de Voz IA
+            </CardTitle>
+            <CardDescription>
+              Chamadas telefônicas com IA em tempo real (ElevenLabs)
+            </CardDescription>
+          </div>
+          {configStatus === 'configured' && (
+            <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              API Configurada
+            </Badge>
+          )}
+          {configStatus === 'not_configured' && (
+            <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              API Não Configurada
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Status */}
+        {/* Visual Status */}
         <div className="flex items-center justify-center">
           <div className={`relative w-32 h-32 rounded-full flex items-center justify-center transition-all ${
-            status === 'connected' || status === 'speaking' 
-              ? 'bg-green-500/20 border-2 border-green-500' 
-              : status === 'listening'
-              ? 'bg-blue-500/20 border-2 border-blue-500 animate-pulse'
+            isConnected && isSpeaking 
+              ? 'bg-green-500/20 border-2 border-green-500 animate-pulse' 
+              : isConnected
+              ? 'bg-blue-500/20 border-2 border-blue-500'
+              : isConnecting
+              ? 'bg-primary/20 border-2 border-primary'
               : 'bg-muted/50 border-2 border-border'
           }`}>
-            {status === 'connecting' ? (
+            {isConnecting ? (
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            ) : status === 'speaking' ? (
+            ) : isSpeaking ? (
               <Volume2 className="h-12 w-12 text-green-500 animate-pulse" />
-            ) : status === 'listening' ? (
-              <Mic className="h-12 w-12 text-blue-500" />
             ) : isConnected ? (
-              <PhoneCall className="h-12 w-12 text-green-500" />
+              <Mic className="h-12 w-12 text-blue-500" />
             ) : (
               <Phone className="h-12 w-12 text-muted-foreground" />
             )}
             
             {isConnected && (
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
-                <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30">
-                  Conectado
-                </Badge>
+                {getStatusBadge()}
               </div>
             )}
           </div>
         </div>
+
+        {/* Status Info */}
+        {isConnected && (
+          <div className="text-center space-y-1">
+            <p className="text-sm font-medium">
+              {isSpeaking ? 'Agente falando...' : 'Ouvindo...'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Fale naturalmente - o agente pode ser interrompido
+            </p>
+          </div>
+        )}
 
         {/* Agent ID Input */}
         {!isConnected && (
@@ -153,12 +255,30 @@ const VoiceAgent = ({ onSpeakingChange }: VoiceAgentProps) => {
           </div>
         )}
 
+        {/* Volume Control */}
+        {isConnected && (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Volume</Label>
+              <span className="text-xs text-muted-foreground">{Math.round(volume[0] * 100)}%</span>
+            </div>
+            <Slider
+              value={volume}
+              onValueChange={setVolume}
+              max={1}
+              min={0}
+              step={0.1}
+              className="w-full"
+            />
+          </div>
+        )}
+
         {/* Controls */}
         <div className="flex items-center justify-center gap-4">
           {!isConnected ? (
             <Button 
               onClick={startConversation} 
-              disabled={isConnecting || !agentId.trim()}
+              disabled={isConnecting || !agentId.trim() || configStatus === 'not_configured'}
               className="gap-2"
               size="lg"
             >
@@ -179,10 +299,10 @@ const VoiceAgent = ({ onSpeakingChange }: VoiceAgentProps) => {
               <Button
                 variant="outline"
                 size="icon"
-                className={`h-12 w-12 rounded-full ${isMuted ? 'bg-red-500/10 text-red-500' : ''}`}
+                className="h-12 w-12 rounded-full"
                 onClick={toggleMute}
               >
-                {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                <Mic className="h-5 w-5" />
               </Button>
               
               <Button
@@ -218,12 +338,22 @@ const VoiceAgent = ({ onSpeakingChange }: VoiceAgentProps) => {
           </div>
         </div>
 
-        {/* Info */}
-        <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
-          <p className="text-xs text-muted-foreground">
-            <strong>Requisitos:</strong> Configure o secret <code className="bg-muted px-1 rounded">ELEVENLABS_API_KEY</code> e crie um agente no painel ElevenLabs.
-          </p>
-        </div>
+        {/* Config Status Info */}
+        {configStatus === 'not_configured' && (
+          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              <strong>Configuração necessária:</strong> O secret <code className="bg-muted px-1 rounded">ELEVENLABS_API_KEY</code> precisa ser configurado para usar o agente de voz.
+            </p>
+          </div>
+        )}
+
+        {configStatus === 'configured' && (
+          <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+            <p className="text-xs text-green-600 dark:text-green-400">
+              <strong>Pronto!</strong> Insira o ID do seu agente ElevenLabs e clique em "Iniciar Chamada" para começar uma conversa.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
