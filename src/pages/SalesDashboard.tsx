@@ -20,7 +20,8 @@ import {
   Zap,
   Target,
   Activity,
-  BarChart3
+  BarChart3,
+  Sparkles
 } from "lucide-react";
 import KnowledgeUploader from "@/components/sales/KnowledgeUploader";
 import LiveSalesFeed from "@/components/sales/LiveSalesFeed";
@@ -31,6 +32,7 @@ import OptimizationLab from "@/components/sales/OptimizationLab";
 import SafetyCenter from "@/components/sales/SafetyCenter";
 import VoiceAgent from "@/components/sales/VoiceAgent";
 import PsychologyPanel from "@/components/sales/PsychologyPanel";
+import SalesVoiceAgent from "@/components/sales/SalesVoiceAgent";
 
 const SalesDashboard = () => {
   const { user } = useAuth();
@@ -225,7 +227,24 @@ const SalesDashboard = () => {
 
           {/* Voice Tab */}
           <TabsContent value="voice" className="space-y-6">
-            <VoiceAgent fullView />
+            <Tabs defaultValue="sales-script" className="space-y-4">
+              <TabsList className="bg-muted/50">
+                <TabsTrigger value="sales-script" className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Script de Vendas
+                </TabsTrigger>
+                <TabsTrigger value="voice-agent" className="gap-2">
+                  <Phone className="h-4 w-4" />
+                  Agente de Voz
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="sales-script">
+                <SalesVoiceAgent />
+              </TabsContent>
+              <TabsContent value="voice-agent">
+                <VoiceAgent fullView />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           {/* Optimization Tab */}
