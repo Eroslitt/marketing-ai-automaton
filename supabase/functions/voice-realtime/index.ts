@@ -2,10 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// This edge function handles ElevenLabs Conversational AI operations
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -15,7 +14,6 @@ serve(async (req) => {
     const { agent_id, action, text, voice_id } = await req.json();
     const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
 
-    // Check configuration status
     if (action === 'check_config') {
       return new Response(
         JSON.stringify({ configured: !!ELEVENLABS_API_KEY }),
@@ -43,26 +41,17 @@ serve(async (req) => {
         );
       }
 
-      console.log('Requesting token for agent:', agent_id);
-
       const response = await fetch(
         `https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${agent_id}`,
-        {
-          headers: {
-            "xi-api-key": ELEVENLABS_API_KEY,
-          },
-        }
+        { headers: { "xi-api-key": ELEVENLABS_API_KEY } }
       );
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('ElevenLabs token error:', error);
         throw new Error(`Failed to get conversation token: ${error}`);
       }
 
       const data = await response.json();
-      console.log('Token received successfully');
-      
       return new Response(
         JSON.stringify({ token: data.token }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -78,26 +67,17 @@ serve(async (req) => {
         );
       }
 
-      console.log('Requesting signed URL for agent:', agent_id);
-
       const response = await fetch(
         `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${agent_id}`,
-        {
-          headers: {
-            "xi-api-key": ELEVENLABS_API_KEY,
-          },
-        }
+        { headers: { "xi-api-key": ELEVENLABS_API_KEY } }
       );
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('ElevenLabs signed URL error:', error);
         throw new Error(`Failed to get signed URL: ${error}`);
       }
 
       const data = await response.json();
-      console.log('Signed URL received successfully');
-      
       return new Response(
         JSON.stringify({ signed_url: data.signed_url }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -106,7 +86,7 @@ serve(async (req) => {
 
     // Text to Speech
     if (action === 'tts') {
-      const voiceIdToUse = voice_id || 'JBFqnCBsd6RMkjVDRZzb'; // George voice as default
+      const voiceIdToUse = voice_id || 'JBFqnCBsd6RMkjVDRZzb';
       
       if (!text) {
         return new Response(
@@ -114,8 +94,6 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-
-      console.log('Generating TTS for text:', text.substring(0, 50) + '...');
 
       const response = await fetch(
         `https://api.elevenlabs.io/v1/text-to-speech/${voiceIdToUse}/stream?output_format=mp3_44100_128`,
@@ -134,11 +112,8 @@ serve(async (req) => {
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('TTS error:', error);
         throw new Error(`TTS error: ${error}`);
       }
-
-      console.log('TTS audio generated successfully');
 
       return new Response(response.body, {
         headers: {
@@ -153,11 +128,7 @@ serve(async (req) => {
     if (action === 'list_voices') {
       const response = await fetch(
         'https://api.elevenlabs.io/v1/voices',
-        {
-          headers: {
-            'xi-api-key': ELEVENLABS_API_KEY,
-          },
-        }
+        { headers: { 'xi-api-key': ELEVENLABS_API_KEY } }
       );
 
       if (!response.ok) {
@@ -166,7 +137,6 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-      
       return new Response(
         JSON.stringify({ voices: data.voices }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -177,11 +147,7 @@ serve(async (req) => {
     if (action === 'list_agents') {
       const response = await fetch(
         'https://api.elevenlabs.io/v1/convai/agents',
-        {
-          headers: {
-            'xi-api-key': ELEVENLABS_API_KEY,
-          },
-        }
+        { headers: { 'xi-api-key': ELEVENLABS_API_KEY } }
       );
 
       if (!response.ok) {
@@ -190,7 +156,6 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-      
       return new Response(
         JSON.stringify({ agents: data.agents || [] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

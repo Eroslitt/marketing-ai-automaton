@@ -173,6 +173,10 @@ const SalesDashboard = () => {
               <Zap className="h-4 w-4" />
               Live Sales
             </TabsTrigger>
+            <TabsTrigger value="voice" className="gap-2">
+              <Phone className="h-4 w-4" />
+              Voz IA
+            </TabsTrigger>
             <TabsTrigger value="optimization" className="gap-2">
               <TrendingUp className="h-4 w-4" />
               Otimização
@@ -217,6 +221,11 @@ const SalesDashboard = () => {
           {/* Live Sales Tab */}
           <TabsContent value="live" className="space-y-6">
             <LiveSalesFeed />
+          </TabsContent>
+
+          {/* Voice Tab */}
+          <TabsContent value="voice" className="space-y-6">
+            <VoiceAgent fullView />
           </TabsContent>
 
           {/* Optimization Tab */}
