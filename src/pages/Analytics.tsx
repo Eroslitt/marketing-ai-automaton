@@ -1,214 +1,179 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  Users,
-  DollarSign,
-  Target,
-  Clock,
-  AlertTriangle,
-  Download,
-  Calendar,
-  Filter,
-  Eye,
-  MousePointer,
-  Heart,
-  MessageSquare,
-  ShoppingCart,
-  UserCheck,
-  Zap,
-  ArrowUpRight,
-  ArrowDownRight
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, PieChart, Pie, Cell, LineChart, Line, Legend
+} from "recharts";
+import {
+  BarChart3, TrendingUp, TrendingDown, Users, DollarSign, Target,
+  Download, Eye, MousePointer, ShoppingCart, UserCheck, Zap,
+  ArrowUpRight, ArrowDownRight, AlertTriangle, Clock, RefreshCw
 } from "lucide-react";
 
+interface SalesMetric {
+  date: string;
+  leads_contacted: number | null;
+  responses_received: number | null;
+  sales_completed: number | null;
+  revenue: number | null;
+}
+
+interface Campaign {
+  id: string;
+  name: string;
+  status: string | null;
+  budget_total: number | null;
+  budget_spent: number | null;
+  start_date: string | null;
+  created_at: string;
+}
+
+interface Lead {
+  id: string;
+  status: string | null;
+  source: string | null;
+  score: number | null;
+  created_at: string;
+}
+
+const COLORS = [
+  "hsl(var(--primary))",
+  "hsl(142, 71%, 45%)",
+  "hsl(38, 92%, 50%)",
+  "hsl(262, 83%, 58%)",
+  "hsl(199, 89%, 48%)",
+  "hsl(346, 77%, 50%)"
+];
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+
 export const Analytics = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState("30d");
-  const [selectedCampaign, setSelectedCampaign] = useState("all");
+  const { user } = useAuth();
+  const [period, setPeriod] = useState("30d");
+  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState<SalesMetric[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
 
-  // Mock data - simulando dados reais
-  const kpis = [
-    {
-      title: "ROI Total",
-      value: "485%",
-      change: 23.5,
-      icon: TrendingUp,
-      description: "Retorno sobre investimento",
-      trend: "up"
-    },
-    {
-      title: "Receita Gerada", 
-      value: "R$ 127.450",
-      change: 18.2,
-      icon: DollarSign,
-      description: "Receita atribuída ao marketing",
-      trend: "up"
-    },
-    {
-      title: "CAC Médio",
-      value: "R$ 89,50",
-      change: -12.3,
-      icon: Target,
-      description: "Custo de aquisição por cliente",
-      trend: "down"
-    },
-    {
-      title: "LTV/CAC Ratio",
-      value: "4.2x",
-      change: 15.8,
-      icon: Users,
-      description: "Proporção lifetime value vs CAC",
-      trend: "up"
-    }
-  ];
+  const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "90d" ? 90 : 365;
 
-  const campaigns = [
-    {
-      id: 1,
-      name: "Black Friday 2024",
-      status: "active",
-      spent: 15480,
-      revenue: 89250,
-      roas: 5.8,
-      ctr: 3.2,
-      cpm: 12.50,
-      conversions: 156,
-      cpa: 99.23
-    },
-    {
-      id: 2, 
-      name: "Lançamento Produto X",
-      status: "completed",
-      spent: 8920,
-      revenue: 34780,
-      roas: 3.9,
-      ctr: 2.8,
-      cpm: 18.90,
-      conversions: 89,
-      cpa: 100.22
-    },
-    {
-      id: 3,
-      name: "Captação B2B Tech",
-      status: "optimizing", 
-      spent: 12350,
-      revenue: 67890,
-      roas: 5.5,
-      ctr: 4.1,
-      cpm: 22.80,
-      conversions: 203,
-      cpa: 60.84
-    }
-  ];
+  useEffect(() => {
+    if (user) loadAll();
+  }, [user, period]);
 
-  const insights = [
-    {
-      type: "opportunity",
-      title: "Oportunidade de Otimização",
-      description: "Campanha 'Black Friday' tem CTR 40% acima da média do setor. Considere aumentar o orçamento.",
-      action: "Aumentar orçamento em 25%",
-      impact: "+R$ 12.500 receita estimada",
-      priority: "high"
-    },
-    { 
-      type: "warning",
-      title: "Performance em Queda",
-      description: "CPM da campanha B2B subiu 18% nos últimos 7 dias. Possível fadiga de criativo.",
-      action: "Testar novos criativos",
-      impact: "Reduzir CPM em ~15%",
-      priority: "medium"
-    },
-    {
-      type: "success",
-      title: "Meta Atingida",
-      description: "ROI mensal ultrapassou a meta de 400%. Excelente performance geral.",
-      action: "Escalar estratégias vencedoras",
-      impact: "Manter crescimento sustentável",
-      priority: "low"
-    }
-  ];
+  const loadAll = async () => {
+    setLoading(true);
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+    const startStr = start.toISOString();
 
-  const funnelData = [
-    { stage: "Impressões", value: 2450000, percentage: 100, change: 12.5 },
-    { stage: "Cliques", value: 73500, percentage: 3.0, change: 8.2 },
-    { stage: "Visualizações LP", value: 65200, percentage: 2.7, change: 5.8 },
-    { stage: "Leads", value: 4580, percentage: 0.19, change: 15.3 },
-    { stage: "Oportunidades", value: 1374, percentage: 0.056, change: 18.9 },
-    { stage: "Vendas", value: 312, percentage: 0.013, change: 22.1 }
-  ];
+    const [mRes, cRes, lRes] = await Promise.all([
+      supabase.from("sales_metrics").select("*").eq("user_id", user!.id)
+        .gte("date", startStr.split("T")[0]).order("date", { ascending: true }),
+      supabase.from("campaigns").select("*").eq("user_id", user!.id)
+        .gte("created_at", startStr).order("created_at", { ascending: false }),
+      supabase.from("leads").select("*").eq("user_id", user!.id)
+        .gte("created_at", startStr).order("created_at", { ascending: false }),
+    ]);
 
-  const channelPerformance = [
-    { 
-      channel: "Meta Ads", 
-      spent: 18500, 
-      revenue: 89200, 
-      roas: 4.8, 
-      share: 45,
-      trend: "up"
-    },
-    {
-      channel: "Google Ads",
-      spent: 12300,
-      revenue: 52800,
-      roas: 4.3,
-      share: 32,
-      trend: "stable"
-    },
-    {
-      channel: "TikTok Ads", 
-      spent: 6200,
-      revenue: 18900,
-      roas: 3.0,
-      share: 15,
-      trend: "up"
-    },
-    {
-      channel: "LinkedIn Ads",
-      spent: 3800,
-      revenue: 12400,
-      roas: 3.3,
-      share: 8,
-      trend: "down"
-    }
-  ];
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
+    setMetrics(mRes.data || []);
+    setCampaigns(cRes.data || []);
+    setLeads(lRes.data || []);
+    setLoading(false);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-growth/10 text-growth';
-      case 'completed':
-        return 'bg-blue-500/10 text-blue-500';
-      case 'optimizing':
-        return 'bg-warning/10 text-warning';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
+  // ── Computed KPIs ──
+  const kpis = useMemo(() => {
+    const totalLeads = leads.length;
+    const totalRevenue = metrics.reduce((s, m) => s + (m.revenue || 0), 0);
+    const totalSales = metrics.reduce((s, m) => s + (m.sales_completed || 0), 0);
+    const totalContacted = metrics.reduce((s, m) => s + (m.leads_contacted || 0), 0);
+    const totalResponses = metrics.reduce((s, m) => s + (m.responses_received || 0), 0);
+    const responseRate = totalContacted > 0 ? Math.round((totalResponses / totalContacted) * 100) : 0;
+    const totalSpent = campaigns.reduce((s, c) => s + (c.budget_spent || 0), 0);
+    const roi = totalSpent > 0 ? Math.round(((totalRevenue - totalSpent) / totalSpent) * 100) : 0;
+
+    return { totalLeads, totalRevenue, totalSales, totalContacted, responseRate, totalSpent, roi };
+  }, [metrics, campaigns, leads]);
+
+  // ── Chart data ──
+  const timeSeriesData = useMemo(() =>
+    metrics.map(m => ({
+      date: new Date(m.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+      leads: m.leads_contacted || 0,
+      respostas: m.responses_received || 0,
+      vendas: m.sales_completed || 0,
+      receita: m.revenue || 0,
+    })), [metrics]);
+
+  const leadsByStatus = useMemo(() => {
+    const map: Record<string, number> = {};
+    leads.forEach(l => { map[l.status || "new"] = (map[l.status || "new"] || 0) + 1; });
+    return Object.entries(map).map(([name, value]) => ({ name: statusLabel(name), value }));
+  }, [leads]);
+
+  const leadsBySource = useMemo(() => {
+    const map: Record<string, number> = {};
+    leads.forEach(l => { map[l.source || "outro"] = (map[l.source || "outro"] || 0) + 1; });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [leads]);
+
+  const campaignPerformance = useMemo(() =>
+    campaigns.map(c => ({
+      name: c.name.length > 20 ? c.name.slice(0, 20) + "…" : c.name,
+      gasto: c.budget_spent || 0,
+      orcamento: c.budget_total || 0,
+    })), [campaigns]);
+
+  const funnelData = useMemo(() => {
+    const contacted = kpis.totalContacted;
+    const responses = metrics.reduce((s, m) => s + (m.responses_received || 0), 0);
+    const qualified = leads.filter(l => l.status === "qualified" || l.status === "hot").length;
+    const sales = kpis.totalSales;
+    return [
+      { stage: "Leads Captados", value: kpis.totalLeads },
+      { stage: "Contactados", value: contacted },
+      { stage: "Respostas", value: responses },
+      { stage: "Qualificados", value: qualified },
+      { stage: "Vendas", value: sales },
+    ];
+  }, [kpis, metrics, leads]);
+
+  const handleExport = () => {
+    const rows = [
+      ["Data", "Leads", "Respostas", "Vendas", "Receita"],
+      ...timeSeriesData.map(d => [d.date, d.leads, d.respostas, d.vendas, d.receita])
+    ];
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `analytics-${period}.csv`; a.click();
+    toast.success("Relatório exportado!");
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-destructive/10 text-destructive border-destructive/20';
-      case 'medium':
-        return 'bg-warning/10 text-warning border-warning/20';
-      case 'low':
-        return 'bg-growth/10 text-growth border-growth/20';
-      default:
-        return 'bg-muted text-muted-foreground border-border';
-    }
-  };
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28" />)}
+        </div>
+        <Skeleton className="h-96" />
+      </div>
+    );
+  }
+
+  const hasData = metrics.length > 0 || leads.length > 0 || campaigns.length > 0;
 
   return (
     <div className="space-y-6">
@@ -216,11 +181,11 @@ export const Analytics = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Analytics & Insights</h1>
-          <p className="text-muted-foreground">Análise avançada de performance e insights automáticos</p>
+          <p className="text-muted-foreground">Dados reais de vendas, leads e campanhas</p>
         </div>
         <div className="flex items-center gap-2">
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-32">
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-36">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -230,366 +195,315 @@ export const Analytics = () => {
               <SelectItem value="1y">Último ano</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" className="gap-2">
-            <Download className="w-4 h-4" />
-            Exportar
+          <Button variant="outline" size="icon" onClick={loadAll}><RefreshCw className="w-4 h-4" /></Button>
+          <Button variant="outline" className="gap-2" onClick={handleExport}>
+            <Download className="w-4 h-4" /> Exportar
           </Button>
         </div>
       </div>
 
-      {/* KPIs Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {kpis.map((kpi) => {
-          const Icon = kpi.icon;
-          const isPositive = kpi.change > 0;
-          
-          return (
-            <Card key={kpi.title} className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <Icon className="w-8 h-8 text-primary" />
-                <div className={`flex items-center gap-1 text-sm font-medium ${
-                  isPositive ? 'text-growth' : 'text-destructive'
-                }`}>
-                  {isPositive ? (
-                    <ArrowUpRight className="w-4 h-4" />
-                  ) : (
-                    <ArrowDownRight className="w-4 h-4" />
-                  )}
-                  {Math.abs(kpi.change)}%
-                </div>
-              </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { title: "Receita Total", value: formatCurrency(kpis.totalRevenue), icon: DollarSign, color: "text-green-500", bg: "bg-green-500/10" },
+          { title: "Total Leads", value: kpis.totalLeads.toString(), icon: Users, color: "text-primary", bg: "bg-primary/10" },
+          { title: "Vendas Realizadas", value: kpis.totalSales.toString(), icon: ShoppingCart, color: "text-amber-500", bg: "bg-amber-500/10" },
+          { title: "ROI", value: `${kpis.roi}%`, icon: TrendingUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+        ].map((kpi) => (
+          <Card key={kpi.title} className="p-6">
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-foreground mb-1">{kpi.value}</p>
-                <p className="text-sm text-muted-foreground">{kpi.description}</p>
+                <p className="text-sm text-muted-foreground">{kpi.title}</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{kpi.value}</p>
               </div>
-            </Card>
-          );
-        })}
+              <div className={`p-3 rounded-xl ${kpi.bg}`}>
+                <kpi.icon className={`h-6 w-6 ${kpi.color}`} />
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="campaigns">Campanhas</TabsTrigger>
-          <TabsTrigger value="funnel">Funil</TabsTrigger>
-          <TabsTrigger value="channels">Canais</TabsTrigger>
-          <TabsTrigger value="insights">Insights IA</TabsTrigger>
-          <TabsTrigger value="cohort">Cohort</TabsTrigger>
-        </TabsList>
+      {!hasData && (
+        <Card className="p-12 text-center">
+          <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">Sem dados no período</h3>
+          <p className="text-muted-foreground">Crie campanhas, leads e registre vendas para ver os analytics.</p>
+        </Card>
+      )}
 
-        <TabsContent value="overview" className="space-y-6">
-          {/* Performance Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2 p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Performance ao Longo do Tempo</h3>
-              <div className="h-80 bg-muted/30 rounded-lg flex items-center justify-center">
-                <p className="text-muted-foreground">Gráfico de performance temporal</p>
-              </div>
-            </Card>
+      {hasData && (
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="bg-muted/50 p-1 flex-wrap">
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="leads">Leads</TabsTrigger>
+            <TabsTrigger value="campaigns">Campanhas</TabsTrigger>
+            <TabsTrigger value="funnel">Funil</TabsTrigger>
+          </TabsList>
 
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Distribuição de Canais</h3>
-              <div className="space-y-4">
-                {channelPerformance.map((channel, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${
-                        index === 0 ? 'bg-primary' :
-                        index === 1 ? 'bg-accent' :
-                        index === 2 ? 'bg-warning' : 'bg-muted-foreground'
-                      }`} />
-                      <span className="text-sm text-foreground">{channel.channel}</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-foreground">{channel.share}%</p>
-                      <p className="text-xs text-muted-foreground">
-                        ROAS {channel.roas}x
-                      </p>
-                    </div>
+          {/* ── Overview ── */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-2 p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" /> Performance ao Longo do Tempo
+                </h3>
+                {timeSeriesData.length > 0 ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={timeSeriesData}>
+                        <defs>
+                          <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                          </linearGradient>
+                          <linearGradient id="gVendas" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                        <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                        <Legend />
+                        <Area type="monotone" dataKey="leads" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#gLeads)" name="Leads" />
+                        <Area type="monotone" dataKey="vendas" stroke="#22c55e" fillOpacity={1} fill="url(#gVendas)" name="Vendas" />
+                      </AreaChart>
+                    </ResponsiveContainer>
                   </div>
-                ))}
-              </div>
-            </Card>
-          </div>
+                ) : <EmptyChart />}
+              </Card>
 
-          {/* Métricas Detalhadas */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-            {[
-              { label: "Impressões", value: "2.45M", icon: Eye },
-              { label: "Cliques", value: "73.5K", icon: MousePointer },
-              { label: "CTR", value: "3.0%", icon: Target },
-              { label: "CPC", value: "R$ 2.85", icon: DollarSign },
-              { label: "CPM", value: "R$ 18.50", icon: BarChart3 },
-              { label: "Conversões", value: "1.374", icon: ShoppingCart },
-              { label: "Taxa Conv.", value: "1.87%", icon: TrendingUp },
-              { label: "CPA", value: "R$ 89.50", icon: UserCheck }
-            ].map((metric, index) => {
-              const Icon = metric.icon;
-              return (
-                <Card key={index} className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Icon className="w-4 h-4 text-primary" />
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Receita Diária</h3>
+                {timeSeriesData.length > 0 ? (
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={timeSeriesData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                        <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} axisLine={false} />
+                        <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} formatter={(v: number) => formatCurrency(v)} />
+                        <Bar dataKey="receita" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Receita" />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                  <p className="text-lg font-bold text-foreground">{metric.value}</p>
-                  <p className="text-xs text-muted-foreground">{metric.label}</p>
+                ) : <EmptyChart />}
+              </Card>
+            </div>
+
+            {/* Mini stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Contactados", value: kpis.totalContacted, icon: MousePointer },
+                { label: "Taxa Resposta", value: `${kpis.responseRate}%`, icon: Eye },
+                { label: "Gasto Total", value: formatCurrency(kpis.totalSpent), icon: DollarSign },
+                { label: "Campanhas", value: campaigns.length, icon: Target },
+              ].map((m, i) => (
+                <Card key={i} className="p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <m.icon className="w-4 h-4 text-primary" />
+                    <span className="text-xs text-muted-foreground">{m.label}</span>
+                  </div>
+                  <p className="text-lg font-bold text-foreground">{m.value}</p>
                 </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="campaigns" className="space-y-6">
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-foreground">Performance por Campanha</h3>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Filter className="w-4 h-4" />
-                  Filtrar
-                </Button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Campanha</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Status</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Gasto</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Receita</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">ROAS</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">CTR</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">CPA</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Conv.</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {campaigns.map((campaign) => (
-                    <tr key={campaign.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                      <td className="py-4 px-2">
-                        <p className="font-medium text-foreground">{campaign.name}</p>
-                      </td>
-                      <td className="py-4 px-2">
-                        <Badge className={getStatusColor(campaign.status)}>
-                          {campaign.status === 'active' ? 'Ativa' :
-                           campaign.status === 'completed' ? 'Finalizada' : 'Otimizando'}
-                        </Badge>
-                      </td>
-                      <td className="py-4 px-2 font-medium text-foreground">
-                        {formatCurrency(campaign.spent)}
-                      </td>
-                      <td className="py-4 px-2 font-medium text-growth">
-                        {formatCurrency(campaign.revenue)}
-                      </td>
-                      <td className="py-4 px-2 font-medium text-foreground">
-                        {campaign.roas}x
-                      </td>
-                      <td className="py-4 px-2 font-medium text-foreground">
-                        {campaign.ctr}%
-                      </td>
-                      <td className="py-4 px-2 font-medium text-foreground">
-                        {formatCurrency(campaign.cpa)}
-                      </td>
-                      <td className="py-4 px-2 font-medium text-foreground">
-                        {campaign.conversions}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="funnel" className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-6">Análise de Funil de Conversão</h3>
-            
-            <div className="space-y-4">
-              {funnelData.map((stage, index) => (
-                <div key={stage.stage} className="relative">
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg border">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-full text-sm font-medium">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{stage.stage}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {stage.value.toLocaleString('pt-BR')} ({stage.percentage}%)
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                      <div className={`flex items-center gap-1 text-sm font-medium ${
-                        stage.change > 0 ? 'text-growth' : 'text-destructive'
-                      }`}>
-                        {stage.change > 0 ? (
-                          <TrendingUp className="w-4 h-4" />
-                        ) : (
-                          <TrendingDown className="w-4 h-4" />
-                        )}
-                        {Math.abs(stage.change)}%
-                      </div>
-                      
-                      <div className="w-32">
-                        <div className="w-full bg-muted rounded-full h-2">
-                          <div 
-                            className="bg-primary h-2 rounded-full transition-all"
-                            style={{ width: `${Math.min(stage.percentage * 30, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {index < funnelData.length - 1 && (
-                    <div className="flex justify-center my-2">
-                      <div className="w-0.5 h-4 bg-border" />
-                    </div>
-                  )}
-                </div>
               ))}
             </div>
-          </Card>
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="channels" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {channelPerformance.map((channel, index) => (
-              <Card key={index} className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-foreground">{channel.channel}</h3>
-                  <Badge className={`${
-                    channel.trend === 'up' ? 'bg-growth/10 text-growth' :
-                    channel.trend === 'down' ? 'bg-destructive/10 text-destructive' :
-                    'bg-muted text-muted-foreground'
-                  }`}>
-                    {channel.trend === 'up' ? '↑' : channel.trend === 'down' ? '↓' : '→'} 
-                    {channel.trend === 'up' ? 'Crescendo' : 
-                     channel.trend === 'down' ? 'Declinando' : 'Estável'}
-                  </Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Investimento</p>
-                    <p className="text-xl font-bold text-foreground">
-                      {formatCurrency(channel.spent)}
-                    </p>
+          {/* ── Leads ── */}
+          <TabsContent value="leads" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Leads por Status</h3>
+                {leadsByStatus.length > 0 ? (
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={leadsByStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, value }) => `${name}: ${value}`}>
+                          {leadsByStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Receita</p>
-                    <p className="text-xl font-bold text-growth">
-                      {formatCurrency(channel.revenue)}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">ROAS</span>
-                  <span className="font-medium text-foreground">{channel.roas}x</span>
-                </div>
-                
-                <div className="flex items-center justify-between text-sm mt-2">
-                  <span className="text-muted-foreground">Participação</span>
-                  <span className="font-medium text-foreground">{channel.share}%</span>
-                </div>
+                ) : <EmptyChart />}
               </Card>
-            ))}
-          </div>
-        </TabsContent>
 
-        <TabsContent value="insights" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {insights.map((insight, index) => (
-              <Card key={index} className={`p-6 border-2 ${getPriorityColor(insight.priority)}`}>
-                <div className="flex items-start gap-3 mb-4">
-                  <div className={`p-2 rounded-lg ${
-                    insight.type === 'opportunity' ? 'bg-primary/10' :
-                    insight.type === 'warning' ? 'bg-warning/10' :
-                    'bg-growth/10'
-                  }`}>
-                    {insight.type === 'opportunity' && <Zap className="w-5 h-5 text-primary" />}
-                    {insight.type === 'warning' && <AlertTriangle className="w-5 h-5 text-warning" />}
-                    {insight.type === 'success' && <Target className="w-5 h-5 text-growth" />}
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Leads por Fonte</h3>
+                {leadsBySource.length > 0 ? (
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={leadsBySource} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                        <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                        <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} width={80} />
+                        <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                        <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} name="Leads" />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                  
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-foreground">{insight.title}</h4>
-                      <Badge variant="outline" className="text-xs">
-                        {insight.priority === 'high' ? 'Alta' :
-                         insight.priority === 'medium' ? 'Média' : 'Baixa'}
-                      </Badge>
-                    </div>
-                    
-                    <p className="text-sm text-muted-foreground mb-3">
-                      {insight.description}
-                    </p>
-                    
-                    <div className="p-3 bg-muted/30 rounded-lg mb-3">
-                      <p className="text-sm font-medium text-foreground mb-1">
-                        💡 Ação Recomendada
-                      </p>
-                      <p className="text-sm text-muted-foreground">{insight.action}</p>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Impacto esperado:</span>
-                      <span className="text-sm font-medium text-growth">{insight.impact}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <Button className="w-full" size="sm">
-                  Aplicar Recomendação
-                </Button>
+                ) : <EmptyChart />}
               </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="cohort" className="space-y-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Análise de Cohort - LTV</h3>
-            <div className="h-80 bg-muted/30 rounded-lg flex items-center justify-center">
-              <p className="text-muted-foreground">Matriz de cohort por período de aquisição</p>
             </div>
-          </Card>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            {/* Lead score distribution */}
             <Card className="p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-5 h-5 text-primary" />
-                <p className="text-sm text-muted-foreground">LTV Médio</p>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Top Leads por Score</h3>
+              <div className="space-y-3">
+                {leads.sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 10).map(l => (
+                  <div key={l.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                        {(l.score || 0)}
+                      </div>
+                      <span className="text-sm font-medium text-foreground">{(l as any).name || "Lead"}</span>
+                    </div>
+                    <Badge variant="outline">{statusLabel(l.status || "new")}</Badge>
+                  </div>
+                ))}
+                {leads.length === 0 && <p className="text-muted-foreground text-sm text-center py-4">Nenhum lead no período</p>}
               </div>
-              <p className="text-2xl font-bold text-foreground">R$ 1.247</p>
-              <p className="text-sm text-growth">+15.3% vs mês anterior</p>
             </Card>
-            
+          </TabsContent>
+
+          {/* ── Campaigns ── */}
+          <TabsContent value="campaigns" className="space-y-6">
             <Card className="p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-5 h-5 text-warning" />
-                <p className="text-sm text-muted-foreground">Payback Time</p>
-              </div>
-              <p className="text-2xl font-bold text-foreground">3.2 meses</p>
-              <p className="text-sm text-growth">-0.8 meses vs anterior</p>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Orçamento vs Gasto por Campanha</h3>
+              {campaignPerformance.length > 0 ? (
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={campaignPerformance}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} />
+                      <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} formatter={(v: number) => formatCurrency(v)} />
+                      <Legend />
+                      <Bar dataKey="orcamento" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Orçamento" />
+                      <Bar dataKey="gasto" fill="#f59e0b" radius={[4, 4, 0, 0]} name="Gasto" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : <EmptyChart />}
             </Card>
-            
+
             <Card className="p-6">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-5 h-5 text-growth" />
-                <p className="text-sm text-muted-foreground">Retenção 6M</p>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Detalhes das Campanhas</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Campanha</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Status</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Orçamento</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Gasto</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">% Utilizado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {campaigns.map(c => {
+                      const pct = c.budget_total ? Math.round(((c.budget_spent || 0) / c.budget_total) * 100) : 0;
+                      return (
+                        <tr key={c.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+                          <td className="py-3 px-2 font-medium text-foreground">{c.name}</td>
+                          <td className="py-3 px-2">
+                            <Badge variant="outline" className={c.status === "active" ? "text-green-500 border-green-500/30" : ""}>{c.status || "draft"}</Badge>
+                          </td>
+                          <td className="py-3 px-2 text-foreground">{formatCurrency(c.budget_total || 0)}</td>
+                          <td className="py-3 px-2 text-foreground">{formatCurrency(c.budget_spent || 0)}</td>
+                          <td className="py-3 px-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-20 bg-muted rounded-full h-2">
+                                <div className="bg-primary h-2 rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} />
+                              </div>
+                              <span className="text-sm text-muted-foreground">{pct}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {campaigns.length === 0 && (
+                      <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">Nenhuma campanha no período</td></tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <p className="text-2xl font-bold text-foreground">68%</p>
-              <p className="text-sm text-growth">+5.2% vs cohort anterior</p>
             </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+
+          {/* ── Funnel ── */}
+          <TabsContent value="funnel" className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-6">Funil de Conversão</h3>
+              <div className="space-y-3">
+                {funnelData.map((stage, index) => {
+                  const maxVal = Math.max(...funnelData.map(f => f.value), 1);
+                  const pct = Math.round((stage.value / maxVal) * 100);
+                  return (
+                    <div key={stage.stage}>
+                      <div className="flex items-center justify-between p-4 rounded-lg border bg-gradient-to-r from-primary/10 to-transparent">
+                        <div className="flex items-center gap-4">
+                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{stage.stage}</p>
+                            <p className="text-sm text-muted-foreground">{stage.value.toLocaleString("pt-BR")}</p>
+                          </div>
+                        </div>
+                        <div className="w-40">
+                          <div className="w-full bg-muted rounded-full h-2.5">
+                            <div className="bg-primary h-2.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                      {index < funnelData.length - 1 && (
+                        <div className="flex justify-center my-1">
+                          <div className="w-0.5 h-3 bg-border" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Funil Visual</h3>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={funnelData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <XAxis dataKey="stage" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Quantidade" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 };
+
+function EmptyChart() {
+  return (
+    <div className="h-72 flex items-center justify-center bg-muted/20 rounded-lg">
+      <p className="text-muted-foreground text-sm">Sem dados suficientes para gerar gráfico</p>
+    </div>
+  );
+}
+
+function statusLabel(s: string) {
+  const map: Record<string, string> = {
+    new: "Novo", qualified: "Qualificado", contacted: "Contactado",
+    hot: "Quente", cold: "Frio", won: "Ganho", lost: "Perdido"
+  };
+  return map[s] || s;
+}
