@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       agent_configs: {
         Row: {
           agent_type: string
@@ -413,6 +446,45 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_agents: {
+        Row: {
+          agent_name: string
+          agent_type: string
+          author: string | null
+          category: string | null
+          config: Json | null
+          description: string | null
+          id: string
+          installed_at: string
+          is_active: boolean | null
+          user_id: string
+        }
+        Insert: {
+          agent_name: string
+          agent_type: string
+          author?: string | null
+          category?: string | null
+          config?: Json | null
+          description?: string | null
+          id?: string
+          installed_at?: string
+          is_active?: boolean | null
+          user_id: string
+        }
+        Update: {
+          agent_name?: string
+          agent_type?: string
+          author?: string | null
+          category?: string | null
+          config?: Json | null
+          description?: string | null
+          id?: string
+          installed_at?: string
+          is_active?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           agent_type: string | null
@@ -484,6 +556,75 @@ export type Database = {
           price?: number | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          audience: string | null
+          brand_colors: Json | null
+          brand_description: string | null
+          brand_name: string | null
+          brand_tone: string | null
+          company: string | null
+          created_at: string
+          document: string | null
+          full_name: string | null
+          id: string
+          main_challenges: Json | null
+          monthly_budget: string | null
+          objective: string | null
+          onboarding_completed: boolean | null
+          phone: string | null
+          sector: string | null
+          selected_agents: Json | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          audience?: string | null
+          brand_colors?: Json | null
+          brand_description?: string | null
+          brand_name?: string | null
+          brand_tone?: string | null
+          company?: string | null
+          created_at?: string
+          document?: string | null
+          full_name?: string | null
+          id?: string
+          main_challenges?: Json | null
+          monthly_budget?: string | null
+          objective?: string | null
+          onboarding_completed?: boolean | null
+          phone?: string | null
+          sector?: string | null
+          selected_agents?: Json | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          audience?: string | null
+          brand_colors?: Json | null
+          brand_description?: string | null
+          brand_name?: string | null
+          brand_tone?: string | null
+          company?: string | null
+          created_at?: string
+          document?: string | null
+          full_name?: string | null
+          id?: string
+          main_challenges?: Json | null
+          monthly_budget?: string | null
+          objective?: string | null
+          onboarding_completed?: boolean | null
+          phone?: string | null
+          sector?: string | null
+          selected_agents?: Json | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -695,6 +836,57 @@ export type Database = {
           },
         ]
       }
+      video_projects: {
+        Row: {
+          ai_prompt: string | null
+          created_at: string
+          description: string | null
+          duration_seconds: number | null
+          id: string
+          name: string
+          output_url: string | null
+          quality: string | null
+          ratio: string | null
+          status: string | null
+          style: string | null
+          template: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_prompt?: string | null
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          name: string
+          output_url?: string | null
+          quality?: string | null
+          ratio?: string | null
+          status?: string | null
+          style?: string | null
+          template?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_prompt?: string | null
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          id?: string
+          name?: string
+          output_url?: string | null
+          quality?: string | null
+          ratio?: string | null
+          status?: string | null
+          style?: string | null
+          template?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       voice_calls: {
         Row: {
           conversation_id: string | null
@@ -760,6 +952,101 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      workflow_executions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_agent: string | null
+          id: string
+          progress: number | null
+          started_at: string | null
+          status: string
+          steps: Json | null
+          user_id: string
+          workflow_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_agent?: string | null
+          id?: string
+          progress?: number | null
+          started_at?: string | null
+          status?: string
+          steps?: Json | null
+          user_id: string
+          workflow_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_agent?: string | null
+          id?: string
+          progress?: number | null
+          started_at?: string | null
+          status?: string
+          steps?: Json | null
+          user_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_executions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflows: {
+        Row: {
+          agents: Json | null
+          conditions: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          last_run_at: string | null
+          name: string
+          status: string
+          success_rate: number | null
+          total_runs: number | null
+          triggers: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agents?: Json | null
+          conditions?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_run_at?: string | null
+          name: string
+          status?: string
+          success_rate?: number | null
+          total_runs?: number | null
+          triggers?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agents?: Json | null
+          conditions?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          status?: string
+          success_rate?: number | null
+          total_runs?: number | null
+          triggers?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
