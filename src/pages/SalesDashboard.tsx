@@ -119,19 +119,19 @@ const SalesDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">SalesCore AI</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">SalesCore AI</h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-1">
               Plataforma de Vendas Autônomas com Multi-Agentes IA
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="gap-2 py-2 px-4">
-              <Activity className="h-4 w-4 text-green-500 animate-pulse" />
+            <Badge variant="outline" className="gap-2 py-2 px-3 md:px-4 text-xs md:text-sm">
+              <Activity className="h-3 w-3 md:h-4 md:w-4 text-green-500 animate-pulse" />
               {metrics.activeConversations} conversas ativas
             </Badge>
           </div>
@@ -158,36 +158,43 @@ const SalesDashboard = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="overview" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Visão Geral
-            </TabsTrigger>
-            <TabsTrigger value="products" className="gap-2">
-              <Upload className="h-4 w-4" />
-              Produtos & Conhecimento
-            </TabsTrigger>
-            <TabsTrigger value="agents" className="gap-2">
-              <Bot className="h-4 w-4" />
-              Agentes IA
-            </TabsTrigger>
-            <TabsTrigger value="live" className="gap-2">
-              <Zap className="h-4 w-4" />
-              Live Sales
-            </TabsTrigger>
-            <TabsTrigger value="voice" className="gap-2">
-              <Phone className="h-4 w-4" />
-              Voz IA
-            </TabsTrigger>
-            <TabsTrigger value="optimization" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Otimização
-            </TabsTrigger>
-            <TabsTrigger value="safety" className="gap-2">
-              <Target className="h-4 w-4" />
-              Segurança
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
+            <TabsList className="bg-muted/50 p-1 w-max md:w-auto">
+              <TabsTrigger value="overview" className="gap-1.5 text-xs md:text-sm">
+                <BarChart3 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Visão Geral</span>
+                <span className="sm:hidden">Geral</span>
+              </TabsTrigger>
+              <TabsTrigger value="products" className="gap-1.5 text-xs md:text-sm">
+                <Upload className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Produtos</span>
+                <span className="sm:hidden">Prod.</span>
+              </TabsTrigger>
+              <TabsTrigger value="agents" className="gap-1.5 text-xs md:text-sm">
+                <Bot className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Agentes IA</span>
+                <span className="sm:hidden">IA</span>
+              </TabsTrigger>
+              <TabsTrigger value="live" className="gap-1.5 text-xs md:text-sm">
+                <Zap className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                Live
+              </TabsTrigger>
+              <TabsTrigger value="voice" className="gap-1.5 text-xs md:text-sm">
+                <Phone className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                Voz
+              </TabsTrigger>
+              <TabsTrigger value="optimization" className="gap-1.5 text-xs md:text-sm">
+                <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Otimização</span>
+                <span className="sm:hidden">Otim.</span>
+              </TabsTrigger>
+              <TabsTrigger value="safety" className="gap-1.5 text-xs md:text-sm">
+                <Target className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Segurança</span>
+                <span className="sm:hidden">Seg.</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
