@@ -119,19 +119,19 @@ const SalesDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">SalesCore AI</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">SalesCore AI</h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-1">
               Plataforma de Vendas Autônomas com Multi-Agentes IA
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="gap-2 py-2 px-4">
-              <Activity className="h-4 w-4 text-green-500 animate-pulse" />
+            <Badge variant="outline" className="gap-2 py-2 px-3 md:px-4 text-xs md:text-sm">
+              <Activity className="h-3 w-3 md:h-4 md:w-4 text-green-500 animate-pulse" />
               {metrics.activeConversations} conversas ativas
             </Badge>
           </div>
