@@ -14,6 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_configs: {
+        Row: {
+          agent_type: string
+          created_at: string
+          description: string | null
+          id: string
+          max_tokens: number | null
+          name: string
+          settings: Json | null
+          system_prompt: string | null
+          temperature: number | null
+          updated_at: string
+          user_id: string
+          voice_id: string | null
+          voice_model: string | null
+          voice_speed: number | null
+        }
+        Insert: {
+          agent_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_tokens?: number | null
+          name: string
+          settings?: Json | null
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+          user_id: string
+          voice_id?: string | null
+          voice_model?: string | null
+          voice_speed?: number | null
+        }
+        Update: {
+          agent_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_tokens?: number | null
+          name?: string
+          settings?: Json | null
+          system_prompt?: string | null
+          temperature?: number | null
+          updated_at?: string
+          user_id?: string
+          voice_id?: string | null
+          voice_model?: string | null
+          voice_speed?: number | null
+        }
+        Relationships: []
+      }
+      automations: {
+        Row: {
+          actions: Json | null
+          category: string | null
+          created_at: string
+          description: string | null
+          executions: number | null
+          id: string
+          last_run_at: string | null
+          name: string
+          status: string
+          success_rate: number | null
+          trigger_config: Json | null
+          trigger_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actions?: Json | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          executions?: number | null
+          id?: string
+          last_run_at?: string | null
+          name: string
+          status?: string
+          success_rate?: number | null
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actions?: Json | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          executions?: number | null
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          status?: string
+          success_rate?: number | null
+          trigger_config?: Json | null
+          trigger_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           budget_spent: number | null
