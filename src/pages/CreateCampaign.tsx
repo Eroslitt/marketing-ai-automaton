@@ -6,18 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  ArrowLeft,
-  ArrowRight,
-  Target,
-  Users,
-  DollarSign,
-  Sparkles,
-  CheckCircle
-} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { ArrowLeft, ArrowRight, Target, Users, DollarSign, Sparkles, CheckCircle } from "lucide-react";
 
 export const CreateCampaign = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     objective: "",
@@ -25,33 +24,46 @@ export const CreateCampaign = () => {
     budget: "",
     platforms: [] as string[],
     briefing: "",
-    brandTone: ""
+    brandTone: "",
   });
 
   const steps = [
     { id: 1, title: "Briefing", icon: Target },
     { id: 2, title: "Público & Orçamento", icon: Users },
     { id: 3, title: "Plataformas", icon: DollarSign },
-    { id: 4, title: "IA Generate", icon: Sparkles }
+    { id: 4, title: "Finalizar", icon: Sparkles },
   ];
 
   const platforms = [
-    { id: "meta", name: "Meta Ads (Facebook/Instagram)", checked: false },
-    { id: "google", name: "Google Ads", checked: false },
-    { id: "tiktok", name: "TikTok Ads", checked: false },
-    { id: "linkedin", name: "LinkedIn Ads", checked: false }
+    { id: "meta", name: "Meta Ads (Facebook/Instagram)" },
+    { id: "google", name: "Google Ads" },
+    { id: "tiktok", name: "TikTok Ads" },
+    { id: "linkedin", name: "LinkedIn Ads" },
   ];
 
-  const handleNext = () => {
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
+  const handleNext = () => { if (currentStep < steps.length) setCurrentStep(currentStep + 1); };
+  const handlePrevious = () => { if (currentStep > 1) setCurrentStep(currentStep - 1); };
 
-  const handlePrevious = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
+  const handleFinish = async () => {
+    if (!user) { toast.error("Você precisa estar autenticado"); return; }
+    if (!formData.name) { toast.error("Nome da campanha é obrigatório"); return; }
+
+    setSaving(true);
+    const budgetNum = formData.budget === "custom" ? 0 : parseInt(formData.budget || "0") * 30;
+
+    const { error } = await supabase.from("campaigns").insert({
+      user_id: user.id,
+      name: formData.name,
+      objective: formData.objective || null,
+      budget_total: budgetNum || null,
+      status: "draft",
+      start_date: new Date().toISOString(),
+    });
+
+    setSaving(false);
+    if (error) { toast.error("Erro ao criar campanha: " + error.message); return; }
+    toast.success("Campanha criada com sucesso!");
+    navigate("/campaigns");
   };
 
   const renderStepContent = () => {
@@ -60,206 +72,108 @@ export const CreateCampaign = () => {
         return (
           <div className="space-y-6">
             <div>
-              <Label htmlFor="name" className="text-sm font-medium">Nome da Campanha</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: Lançamento Produto X - Janeiro 2024"
-                className="mt-2"
-              />
+              <Label htmlFor="name">Nome da Campanha</Label>
+              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: Lançamento Produto X" className="mt-2" />
             </div>
-
             <div>
-              <Label htmlFor="objective" className="text-sm font-medium">Objetivo Principal</Label>
-              <Select onValueChange={(value) => setFormData({ ...formData, objective: value })}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Selecione o objetivo" />
-                </SelectTrigger>
+              <Label>Objetivo Principal</Label>
+              <Select value={formData.objective} onValueChange={(v) => setFormData({ ...formData, objective: v })}>
+                <SelectTrigger className="mt-2"><SelectValue placeholder="Selecione o objetivo" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="sales">Vendas/Conversões</SelectItem>
                   <SelectItem value="leads">Geração de Leads</SelectItem>
                   <SelectItem value="traffic">Tráfego para Site</SelectItem>
                   <SelectItem value="awareness">Reconhecimento de Marca</SelectItem>
-                  <SelectItem value="engagement">Engajamento</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
             <div>
-              <Label htmlFor="briefing" className="text-sm font-medium">Briefing Detalhado</Label>
-              <Textarea
-                id="briefing"
-                value={formData.briefing}
-                onChange={(e) => setFormData({ ...formData, briefing: e.target.value })}
-                placeholder="Descreva seu produto/serviço, diferenciais, público-alvo, problemas que resolve..."
-                className="mt-2 min-h-[120px]"
-              />
+              <Label>Briefing Detalhado</Label>
+              <Textarea value={formData.briefing} onChange={(e) => setFormData({ ...formData, briefing: e.target.value })} placeholder="Descreva seu produto/serviço, diferenciais, público-alvo..." className="mt-2 min-h-[120px]" />
             </div>
-
             <div>
-              <Label htmlFor="brandTone" className="text-sm font-medium">Tom de Voz da Marca</Label>
-              <Select onValueChange={(value) => setFormData({ ...formData, brandTone: value })}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Como sua marca se comunica?" />
-                </SelectTrigger>
+              <Label>Tom de Voz</Label>
+              <Select value={formData.brandTone} onValueChange={(v) => setFormData({ ...formData, brandTone: v })}>
+                <SelectTrigger className="mt-2"><SelectValue placeholder="Como sua marca se comunica?" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="professional">Profissional e Formal</SelectItem>
                   <SelectItem value="friendly">Amigável e Próximo</SelectItem>
                   <SelectItem value="bold">Ousado e Provocativo</SelectItem>
                   <SelectItem value="educational">Educativo e Informativo</SelectItem>
-                  <SelectItem value="fun">Divertido e Descontraído</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
         );
-
       case 2:
         return (
           <div className="space-y-6">
             <div>
-              <Label htmlFor="audience" className="text-sm font-medium">Público-Alvo</Label>
-              <Textarea
-                id="audience"
-                value={formData.audience}
-                onChange={(e) => setFormData({ ...formData, audience: e.target.value })}
-                placeholder="Descreva seu público ideal: idade, gênero, interesses, comportamentos, localização..."
-                className="mt-2 min-h-[100px]"
-              />
+              <Label>Público-Alvo</Label>
+              <Textarea value={formData.audience} onChange={(e) => setFormData({ ...formData, audience: e.target.value })} placeholder="Descreva seu público ideal..." className="mt-2 min-h-[100px]" />
             </div>
-
             <div>
-              <Label htmlFor="budget" className="text-sm font-medium">Orçamento Diário</Label>
-              <Select onValueChange={(value) => setFormData({ ...formData, budget: value })}>
-                <SelectTrigger className="mt-2">
-                  <SelectValue placeholder="Quanto investir por dia?" />
-                </SelectTrigger>
+              <Label>Orçamento Diário</Label>
+              <Select value={formData.budget} onValueChange={(v) => setFormData({ ...formData, budget: v })}>
+                <SelectTrigger className="mt-2"><SelectValue placeholder="Quanto investir por dia?" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="100">R$ 100/dia</SelectItem>
                   <SelectItem value="250">R$ 250/dia</SelectItem>
                   <SelectItem value="500">R$ 500/dia</SelectItem>
                   <SelectItem value="1000">R$ 1.000/dia</SelectItem>
-                  <SelectItem value="2000+">R$ 2.000+/dia</SelectItem>
                   <SelectItem value="custom">Valor Personalizado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="bg-muted/30 p-4 rounded-lg">
-              <h4 className="font-medium text-foreground mb-2">Estimativas de Performance</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Alcance Estimado</p>
-                  <p className="font-medium text-foreground">15.000 - 45.000 pessoas</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Leads Esperados</p>
-                  <p className="font-medium text-foreground">30 - 90 leads/mês</p>
-                </div>
-              </div>
-            </div>
           </div>
         );
-
       case 3:
         return (
           <div className="space-y-6">
-            <div>
-              <Label className="text-sm font-medium">Selecione as Plataformas</Label>
-              <div className="mt-4 space-y-3">
-                {platforms.map((platform) => (
-                  <div key={platform.id} className="flex items-center space-x-3">
-                    <Checkbox
-                      id={platform.id}
-                      checked={formData.platforms.includes(platform.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setFormData({
-                            ...formData,
-                            platforms: [...formData.platforms, platform.id]
-                          });
-                        } else {
-                          setFormData({
-                            ...formData,
-                            platforms: formData.platforms.filter(p => p !== platform.id)
-                          });
-                        }
-                      }}
-                    />
-                    <Label
-                      htmlFor={platform.id}
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      {platform.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-              <h4 className="font-medium text-primary mb-2 flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                Recomendação da IA
-              </h4>
-              <p className="text-sm text-foreground">
-                Com base no seu público e objetivo, recomendamos começar com <strong>Meta Ads</strong> para alcance e <strong>Google Ads</strong> para capturar intenção de compra.
-              </p>
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <Sparkles className="w-16 h-16 text-primary mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                Gerando sua Campanha com IA
-              </h3>
-              <p className="text-muted-foreground">
-                Nossos agentes estão criando criativos, copy e configurando sua campanha...
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {[
-                { task: "Analisando briefing e estratégia", completed: true },
-                { task: "Gerando variações de copy e headlines", completed: true },
-                { task: "Criando imagens e criativos", completed: true },
-                { task: "Configurando segmentação e orçamento", completed: false },
-                { task: "Preparando para publicação", completed: false }
-              ].map((item, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  {item.completed ? (
-                    <CheckCircle className="w-5 h-5 text-growth" />
-                  ) : (
-                    <div className="w-5 h-5 border-2 border-muted-foreground rounded-full animate-pulse" />
-                  )}
-                  <span className={`text-sm ${item.completed ? 'text-foreground' : 'text-muted-foreground'}`}>
-                    {item.task}
-                  </span>
+            <Label>Selecione as Plataformas</Label>
+            <div className="mt-4 space-y-3">
+              {platforms.map((p) => (
+                <div key={p.id} className="flex items-center space-x-3">
+                  <Checkbox id={p.id} checked={formData.platforms.includes(p.id)} onCheckedChange={(checked) => {
+                    setFormData({ ...formData, platforms: checked ? [...formData.platforms, p.id] : formData.platforms.filter((x) => x !== p.id) });
+                  }} />
+                  <Label htmlFor={p.id} className="text-sm font-normal cursor-pointer">{p.name}</Label>
                 </div>
               ))}
             </div>
           </div>
         );
-
-      default:
-        return null;
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <Sparkles className="w-16 h-16 text-primary mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-foreground mb-2">Resumo da Campanha</h3>
+            </div>
+            <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+              {[
+                { l: "Nome", v: formData.name || "—" },
+                { l: "Objetivo", v: formData.objective || "—" },
+                { l: "Orçamento diário", v: formData.budget ? `R$ ${formData.budget}/dia` : "—" },
+                { l: "Plataformas", v: formData.platforms.join(", ") || "—" },
+              ].map((r) => (
+                <div key={r.l} className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{r.l}</span>
+                  <span className="font-medium text-foreground">{r.v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      default: return null;
     }
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" asChild>
-          <a href="/campaigns">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
-          </a>
+        <Button variant="ghost" size="sm" onClick={() => navigate("/campaigns")}>
+          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Criar Nova Campanha</h1>
@@ -267,62 +181,41 @@ export const CreateCampaign = () => {
         </div>
       </div>
 
-      {/* Progress Steps */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-8">
-          {steps.map((step, index) => {
+          {steps.map((step, i) => {
             const Icon = step.icon;
             const isActive = currentStep === step.id;
             const isCompleted = currentStep > step.id;
-            
             return (
               <div key={step.id} className="flex items-center">
-                <div className={`
-                  flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors
-                  ${isActive ? 'border-primary bg-primary text-primary-foreground' : 
-                    isCompleted ? 'border-growth bg-growth text-white' : 
-                    'border-muted-foreground bg-background text-muted-foreground'}
-                `}>
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors ${isActive ? "border-primary bg-primary text-primary-foreground" : isCompleted ? "border-green-500 bg-green-500 text-white" : "border-muted-foreground bg-background text-muted-foreground"}`}>
                   <Icon className="w-5 h-5" />
                 </div>
                 <div className="ml-3">
-                  <p className={`text-sm font-medium ${isActive ? 'text-primary' : isCompleted ? 'text-growth' : 'text-muted-foreground'}`}>
-                    {step.title}
-                  </p>
+                  <p className={`text-sm font-medium ${isActive ? "text-primary" : isCompleted ? "text-green-500" : "text-muted-foreground"}`}>{step.title}</p>
                 </div>
-                {index < steps.length - 1 && (
-                  <div className={`w-16 h-0.5 mx-4 ${isCompleted ? 'bg-growth' : 'bg-muted'}`} />
-                )}
+                {i < steps.length - 1 && <div className={`w-16 h-0.5 mx-4 ${isCompleted ? "bg-green-500" : "bg-muted"}`} />}
               </div>
             );
           })}
         </div>
 
-        {/* Step Content */}
-        <div className="min-h-[400px]">
-          {renderStepContent()}
-        </div>
+        <div className="min-h-[400px]">{renderStepContent()}</div>
 
-        {/* Navigation */}
         <div className="flex items-center justify-between pt-6 border-t border-border">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 1}
-            className="gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Anterior
+          <Button variant="outline" onClick={handlePrevious} disabled={currentStep === 1} className="gap-2">
+            <ArrowLeft className="w-4 h-4" /> Anterior
           </Button>
-          
-          <Button
-            onClick={handleNext}
-            disabled={currentStep === steps.length}
-            className="gap-2"
-          >
-            {currentStep === steps.length ? 'Finalizar' : 'Próximo'}
-            <ArrowRight className="w-4 h-4" />
-          </Button>
+          {currentStep === steps.length ? (
+            <Button onClick={handleFinish} disabled={saving} className="gap-2">
+              <CheckCircle className="w-4 h-4" /> {saving ? "Salvando..." : "Criar Campanha"}
+            </Button>
+          ) : (
+            <Button onClick={handleNext} className="gap-2">
+              Próximo <ArrowRight className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </Card>
     </div>
