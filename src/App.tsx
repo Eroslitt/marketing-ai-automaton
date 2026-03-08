@@ -44,7 +44,7 @@ const App = () => (
             <Route path="prospects" element={<Prospects />} />
             <Route path="whatsapp" element={<WhatsAppInbox />} />
             <Route path="projects" element={<CRM />} />
-            <Route path="analytics" element={<Dashboard />} />
+            <Route path="analytics" element={<Analytics />} />
             <Route path="integrations" element={<Integrations />} />
             <Route path="workflows" element={<AgentWorkflows />} />
             <Route path="users" element={<UserManagement />} />
