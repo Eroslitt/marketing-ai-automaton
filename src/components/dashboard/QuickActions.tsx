@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { 
-  Plus, 
   Target, 
   PenTool, 
   Users, 
@@ -22,21 +22,21 @@ const actions = [
     description: "Criar imagens e vídeos automaticamente",
     icon: PenTool,
     color: "bg-accent/10 text-accent hover:bg-accent/20",
-    href: "/creatives/generate"
+    href: "/creatives"
   },
   {
     title: "Prospectar Leads",
     description: "Encontrar e contatar prospects",
     icon: Users,
-    color: "bg-engagement/10 text-engagement hover:bg-engagement/20",
-    href: "/prospects/new"
+    color: "bg-primary/10 text-primary hover:bg-primary/20",
+    href: "/prospects"
   },
   {
     title: "WhatsApp Bot",
     description: "Configurar atendimento automático",
     icon: MessageSquare,
-    color: "bg-growth/10 text-growth hover:bg-growth/20",
-    href: "/whatsapp/setup"
+    color: "bg-primary/10 text-primary hover:bg-primary/20",
+    href: "/whatsapp"
   },
 ];
 
@@ -56,7 +56,7 @@ export const QuickActions = () => {
             className="h-auto p-4 justify-start gap-3 hover:bg-muted/60"
             asChild
           >
-            <a href={action.href}>
+            <Link to={action.href}>
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${action.color}`}>
                 <action.icon className="w-5 h-5" />
               </div>
@@ -64,7 +64,7 @@ export const QuickActions = () => {
                 <p className="font-medium text-foreground text-sm">{action.title}</p>
                 <p className="text-xs text-muted-foreground">{action.description}</p>
               </div>
-            </a>
+            </Link>
           </Button>
         ))}
       </div>
