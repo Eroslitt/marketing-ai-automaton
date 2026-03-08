@@ -158,36 +158,43 @@ const SalesDashboard = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="overview" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Visão Geral
-            </TabsTrigger>
-            <TabsTrigger value="products" className="gap-2">
-              <Upload className="h-4 w-4" />
-              Produtos & Conhecimento
-            </TabsTrigger>
-            <TabsTrigger value="agents" className="gap-2">
-              <Bot className="h-4 w-4" />
-              Agentes IA
-            </TabsTrigger>
-            <TabsTrigger value="live" className="gap-2">
-              <Zap className="h-4 w-4" />
-              Live Sales
-            </TabsTrigger>
-            <TabsTrigger value="voice" className="gap-2">
-              <Phone className="h-4 w-4" />
-              Voz IA
-            </TabsTrigger>
-            <TabsTrigger value="optimization" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Otimização
-            </TabsTrigger>
-            <TabsTrigger value="safety" className="gap-2">
-              <Target className="h-4 w-4" />
-              Segurança
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
+            <TabsList className="bg-muted/50 p-1 w-max md:w-auto">
+              <TabsTrigger value="overview" className="gap-1.5 text-xs md:text-sm">
+                <BarChart3 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Visão Geral</span>
+                <span className="sm:hidden">Geral</span>
+              </TabsTrigger>
+              <TabsTrigger value="products" className="gap-1.5 text-xs md:text-sm">
+                <Upload className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Produtos</span>
+                <span className="sm:hidden">Prod.</span>
+              </TabsTrigger>
+              <TabsTrigger value="agents" className="gap-1.5 text-xs md:text-sm">
+                <Bot className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Agentes IA</span>
+                <span className="sm:hidden">IA</span>
+              </TabsTrigger>
+              <TabsTrigger value="live" className="gap-1.5 text-xs md:text-sm">
+                <Zap className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                Live
+              </TabsTrigger>
+              <TabsTrigger value="voice" className="gap-1.5 text-xs md:text-sm">
+                <Phone className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                Voz
+              </TabsTrigger>
+              <TabsTrigger value="optimization" className="gap-1.5 text-xs md:text-sm">
+                <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Otimização</span>
+                <span className="sm:hidden">Otim.</span>
+              </TabsTrigger>
+              <TabsTrigger value="safety" className="gap-1.5 text-xs md:text-sm">
+                <Target className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                <span className="hidden sm:inline">Segurança</span>
+                <span className="sm:hidden">Seg.</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
