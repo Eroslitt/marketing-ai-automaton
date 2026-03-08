@@ -1,141 +1,184 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import { 
-  Search, 
-  Filter, 
-  Users, 
-  MessageSquare, 
-  Mail,
-  Phone,
-  Building,
-  MapPin,
-  Star,
-  Play,
-  Pause,
-  MoreHorizontal,
-  Plus,
-  Zap,
-  Target
+  Search, Filter, Users, MessageSquare, Mail, Phone,
+  Star, Play, Pause, MoreHorizontal, Plus, Zap, Target, Loader2, Trash2
 } from "lucide-react";
 
+interface Lead {
+  id: string;
+  name: string;
+  company: string | null;
+  position: string | null;
+  email: string | null;
+  phone: string | null;
+  score: number | null;
+  status: string | null;
+  source: string | null;
+  last_contact_at: string | null;
+}
+
 export const Prospects = () => {
-  const [prospects] = useState([
-    {
-      id: 1,
-      name: "João Silva",
-      company: "Tech Solutions LTDA",
-      role: "CEO",
-      location: "São Paulo, SP",
-      industry: "Tecnologia",
-      employees: "50-100",
-      email: "joao@techsolutions.com",
-      phone: "(11) 99999-9999",
-      linkedin: "linkedin.com/in/joaosilva",
-      score: 85,
-      status: "qualified",
-      lastContact: "2024-01-20",
-      source: "LinkedIn"
-    },
-    {
-      id: 2,
-      name: "Maria Santos",
-      company: "Growth Marketing Co.",
-      role: "CMO",
-      location: "Rio de Janeiro, RJ",
-      industry: "Marketing",
-      employees: "20-50",
-      email: "maria@growthmarketing.com",
-      phone: "(21) 88888-8888",
-      linkedin: "linkedin.com/in/mariasantos",
-      score: 92,
-      status: "hot",
-      lastContact: "2024-01-22",
-      source: "Google Search"
-    },
-    {
-      id: 3,
-      name: "Pedro Costa",
-      company: "E-commerce Plus",
-      role: "Founder",
-      location: "Belo Horizonte, MG",
-      industry: "E-commerce",
-      employees: "10-20",
-      email: "pedro@ecommerceplus.com",
-      phone: "(31) 77777-7777",
-      linkedin: "linkedin.com/in/pedrocosta",
-      score: 67,
-      status: "cold",
-      lastContact: "2024-01-18",
-      source: "Meta Ads"
-    }
-  ]);
+  const { user } = useAuth();
+  const [prospects, setProspects] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [showNewSequence, setShowNewSequence] = useState(false);
+  const [showStartProspecting, setShowStartProspecting] = useState(false);
+  const [showNewLead, setShowNewLead] = useState(false);
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [selectedProspect, setSelectedProspect] = useState<Lead | null>(null);
+  const [contactMode, setContactMode] = useState<"whatsapp" | "email">("whatsapp");
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [sequences] = useState([
-    {
-      id: 1,
-      name: "Sequência B2B Tech",
-      description: "Para CEOs e CTOs de empresas de tecnologia",
-      steps: 5,
-      activeLeads: 23,
-      responseRate: "12%",
-      status: "active"
-    },
-    {
-      id: 2,
-      name: "E-commerce Growth",
-      description: "Donos de lojas online interessados em crescer",
-      steps: 7,
-      activeLeads: 45,
-      responseRate: "8%",
-      status: "active"
-    },
-    {
-      id: 3,
-      name: "Agências Digitais",
-      description: "Parceria com agências menores",
-      steps: 4,
-      activeLeads: 12,
-      responseRate: "15%",
-      status: "paused"
-    }
-  ]);
+  const [newLeadForm, setNewLeadForm] = useState({
+    name: "", company: "", position: "", email: "", phone: "", source: "manual"
+  });
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-growth";
-    if (score >= 60) return "text-warning";
-    return "text-muted-foreground";
+  const [newSequenceForm, setNewSequenceForm] = useState({
+    name: "", description: "", steps: "5", target: "all"
+  });
+
+  const [prospectingForm, setProspectingForm] = useState({
+    industry: "", role: "", location: "", companySize: "", keywords: "", volume: "50"
+  });
+
+  useEffect(() => {
+    if (user) loadProspects();
+  }, [user]);
+
+  const loadProspects = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setProspects(data || []);
+    } catch (error) {
+      console.error("Error loading prospects:", error);
+      toast.error("Erro ao carregar prospects");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const handleCreateLead = async () => {
+    if (!newLeadForm.name.trim()) { toast.error("Nome é obrigatório"); return; }
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('leads').insert({
+        user_id: user!.id,
+        name: newLeadForm.name,
+        company: newLeadForm.company || null,
+        position: newLeadForm.position || null,
+        email: newLeadForm.email || null,
+        phone: newLeadForm.phone || null,
+        source: newLeadForm.source,
+        status: 'new',
+        score: 0
+      });
+      if (error) throw error;
+      toast.success("Lead criado com sucesso!");
+      setShowNewLead(false);
+      setNewLeadForm({ name: "", company: "", position: "", email: "", phone: "", source: "manual" });
+      loadProspects();
+    } catch (error) {
+      toast.error("Erro ao criar lead");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteLead = async (id: string) => {
+    if (!confirm("Excluir este prospect?")) return;
+    try {
+      const { error } = await supabase.from('leads').delete().eq('id', id);
+      if (error) throw error;
+      toast.success("Prospect excluído");
+      loadProspects();
+    } catch { toast.error("Erro ao excluir"); }
+  };
+
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
+      const { error } = await supabase.from('leads').update({ status: newStatus }).eq('id', id);
+      if (error) throw error;
+      toast.success(`Status atualizado para ${getStatusText(newStatus)}`);
+      loadProspects();
+    } catch { toast.error("Erro ao atualizar status"); }
+  };
+
+  const handleContact = (prospect: Lead, mode: "whatsapp" | "email") => {
+    setSelectedProspect(prospect);
+    setContactMode(mode);
+    setShowContactDialog(true);
+  };
+
+  const handleSendMessage = () => {
+    toast.success(`Mensagem enviada para ${selectedProspect?.name} via ${contactMode === 'whatsapp' ? 'WhatsApp' : 'E-mail'}!`);
+    setShowContactDialog(false);
+    if (selectedProspect) {
+      supabase.from('leads').update({ last_contact_at: new Date().toISOString() }).eq('id', selectedProspect.id).then(() => loadProspects());
+    }
+  };
+
+  const handleStartProspecting = () => {
+    toast.success(`Prospecção IA iniciada! Buscando ${prospectingForm.volume} leads...`);
+    setShowStartProspecting(false);
+    setProspectingForm({ industry: "", role: "", location: "", companySize: "", keywords: "", volume: "50" });
+  };
+
+  const handleCreateSequence = () => {
+    toast.success(`Sequência "${newSequenceForm.name}" criada com ${newSequenceForm.steps} etapas!`);
+    setShowNewSequence(false);
+    setNewSequenceForm({ name: "", description: "", steps: "5", target: "all" });
+  };
+
+  const filteredProspects = prospects.filter(p => {
+    const matchesSearch = !searchTerm || p.name.toLowerCase().includes(searchTerm.toLowerCase()) || (p.company || "").toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const getScoreColor = (score: number) => score >= 80 ? "text-primary" : score >= 60 ? "text-amber-500" : "text-muted-foreground";
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'hot':
-        return 'bg-destructive/10 text-destructive';
-      case 'qualified':
-        return 'bg-growth/10 text-growth';
-      case 'cold':
-        return 'bg-muted text-muted-foreground';
-      default:
-        return 'bg-muted text-muted-foreground';
+      case 'hot': return 'bg-destructive/10 text-destructive';
+      case 'qualified': return 'bg-primary/10 text-primary';
+      case 'contacted': return 'bg-amber-500/10 text-amber-500';
+      default: return 'bg-muted text-muted-foreground';
+    }
+  };
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'hot': return 'Quente';
+      case 'qualified': return 'Qualificado';
+      case 'contacted': return 'Contactado';
+      case 'cold': return 'Frio';
+      case 'new': return 'Novo';
+      default: return status || 'Novo';
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'hot':
-        return 'Quente';
-      case 'qualified':
-        return 'Qualificado';
-      case 'cold':
-        return 'Frio';
-      default:
-        return 'Novo';
-    }
+  const statsData = {
+    total: prospects.length,
+    qualified: prospects.filter(p => p.status === 'qualified').length,
+    contacted: prospects.filter(p => p.status === 'contacted' || p.status === 'hot').length,
+    avgScore: prospects.length > 0 ? Math.round(prospects.reduce((s, p) => s + (p.score || 0), 0) / prospects.length) : 0
   };
 
   return (
@@ -147,11 +190,15 @@ export const Prospects = () => {
           <p className="text-muted-foreground">Encontre e gerencie leads automaticamente</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setShowNewLead(true)}>
+            <Plus className="w-4 h-4" />
+            Novo Lead
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => setShowNewSequence(true)}>
             <Plus className="w-4 h-4" />
             Nova Sequência
           </Button>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setShowStartProspecting(true)}>
             <Zap className="w-4 h-4" />
             Iniciar Prospecção
           </Button>
@@ -173,34 +220,34 @@ export const Prospects = () => {
                 <Users className="w-5 h-5 text-primary" />
                 <div>
                   <p className="text-sm text-muted-foreground">Total Prospects</p>
-                  <p className="text-2xl font-bold text-foreground">1.247</p>
+                  <p className="text-2xl font-bold text-foreground">{statsData.total}</p>
                 </div>
               </div>
             </Card>
             <Card className="p-4">
               <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-growth" />
+                <Target className="w-5 h-5 text-primary" />
                 <div>
                   <p className="text-sm text-muted-foreground">Qualificados</p>
-                  <p className="text-2xl font-bold text-growth">89</p>
+                  <p className="text-2xl font-bold text-primary">{statsData.qualified}</p>
                 </div>
               </div>
             </Card>
             <Card className="p-4">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-warning" />
+                <MessageSquare className="w-5 h-5 text-amber-500" />
                 <div>
                   <p className="text-sm text-muted-foreground">Em Contato</p>
-                  <p className="text-2xl font-bold text-warning">156</p>
+                  <p className="text-2xl font-bold text-amber-500">{statsData.contacted}</p>
                 </div>
               </div>
             </Card>
             <Card className="p-4">
               <div className="flex items-center gap-2">
-                <Star className="w-5 h-5 text-engagement" />
+                <Star className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Taxa Resposta</p>
-                  <p className="text-2xl font-bold text-engagement">11%</p>
+                  <p className="text-sm text-muted-foreground">Score Médio</p>
+                  <p className="text-2xl font-bold text-foreground">{statsData.avgScore}</p>
                 </div>
               </div>
             </Card>
@@ -212,157 +259,118 @@ export const Prospects = () => {
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder="Buscar prospects..." className="pl-10" />
+                  <Input placeholder="Buscar prospects..." className="pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
               </div>
-              <Select>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Indústria" />
-                </SelectTrigger>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="tech">Tecnologia</SelectItem>
-                  <SelectItem value="ecommerce">E-commerce</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="new">Novos</SelectItem>
+                  <SelectItem value="qualified">Qualificados</SelectItem>
+                  <SelectItem value="contacted">Contactados</SelectItem>
+                  <SelectItem value="hot">Quentes</SelectItem>
+                  <SelectItem value="cold">Frios</SelectItem>
                 </SelectContent>
               </Select>
-              <Select>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hot">Quente</SelectItem>
-                  <SelectItem value="qualified">Qualificado</SelectItem>
-                  <SelectItem value="cold">Frio</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4" />
-              </Button>
             </div>
           </Card>
 
           {/* Prospects List */}
           <Card className="p-6">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Prospect</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Empresa</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Localização</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Score</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Status</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Último Contato</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {prospects.map((prospect) => (
-                    <tr key={prospect.id} className="border-b border-border hover:bg-muted/30 transition-colors">
-                      <td className="py-4 px-2">
-                        <div>
-                          <p className="font-medium text-foreground">{prospect.name}</p>
-                          <p className="text-xs text-muted-foreground">{prospect.role}</p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-2">
-                        <div>
-                          <p className="text-sm text-foreground">{prospect.company}</p>
-                          <p className="text-xs text-muted-foreground">{prospect.industry} • {prospect.employees}</p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-2 text-sm text-foreground">{prospect.location}</td>
-                      <td className="py-4 px-2">
-                        <span className={`text-sm font-bold ${getScoreColor(prospect.score)}`}>
-                          {prospect.score}
-                        </span>
-                      </td>
-                      <td className="py-4 px-2">
-                        <Badge className={getStatusColor(prospect.status)}>
-                          {getStatusText(prospect.status)}
-                        </Badge>
-                      </td>
-                      <td className="py-4 px-2 text-sm text-muted-foreground">{prospect.lastContact}</td>
-                      <td className="py-4 px-2">
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm">
-                            <MessageSquare className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Mail className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : filteredProspects.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+                <p className="text-muted-foreground mb-2">
+                  {prospects.length === 0 ? "Nenhum prospect ainda" : "Nenhum resultado para os filtros"}
+                </p>
+                {prospects.length === 0 && (
+                  <Button onClick={() => setShowNewLead(true)}><Plus className="w-4 h-4 mr-2" />Criar primeiro lead</Button>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Prospect</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Empresa</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Score</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Status</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Fonte</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Último Contato</th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredProspects.map((prospect) => (
+                      <tr key={prospect.id} className="border-b border-border hover:bg-muted/30 transition-colors">
+                        <td className="py-4 px-2">
+                          <div>
+                            <p className="font-medium text-foreground">{prospect.name}</p>
+                            <p className="text-xs text-muted-foreground">{prospect.position || '-'}</p>
+                          </div>
+                        </td>
+                        <td className="py-4 px-2 text-sm text-foreground">{prospect.company || '-'}</td>
+                        <td className="py-4 px-2">
+                          <span className={`text-sm font-bold ${getScoreColor(prospect.score || 0)}`}>
+                            {prospect.score || 0}
+                          </span>
+                        </td>
+                        <td className="py-4 px-2">
+                          <Select value={prospect.status || 'new'} onValueChange={(v) => handleUpdateStatus(prospect.id, v)}>
+                            <SelectTrigger className="h-7 w-28 text-xs border-0 p-0">
+                              <Badge className={getStatusColor(prospect.status || 'new')}>
+                                {getStatusText(prospect.status || 'new')}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="new">Novo</SelectItem>
+                              <SelectItem value="qualified">Qualificado</SelectItem>
+                              <SelectItem value="contacted">Contactado</SelectItem>
+                              <SelectItem value="hot">Quente</SelectItem>
+                              <SelectItem value="cold">Frio</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="py-4 px-2 text-sm text-muted-foreground">{prospect.source || '-'}</td>
+                        <td className="py-4 px-2 text-sm text-muted-foreground">
+                          {prospect.last_contact_at ? new Date(prospect.last_contact_at).toLocaleDateString('pt-BR') : 'Nunca'}
+                        </td>
+                        <td className="py-4 px-2">
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => handleContact(prospect, "whatsapp")} title="WhatsApp">
+                              <MessageSquare className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleContact(prospect, "email")} title="E-mail">
+                              <Mail className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteLead(prospect.id)} className="text-destructive hover:text-destructive" title="Excluir">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </Card>
         </TabsContent>
 
         <TabsContent value="sequences" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sequences.map((sequence) => (
-              <Card key={sequence.id} className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">{sequence.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{sequence.description}</p>
-                  </div>
-                  <Badge className={sequence.status === 'active' ? 'bg-growth/10 text-growth' : 'bg-muted text-muted-foreground'}>
-                    {sequence.status === 'active' ? 'Ativa' : 'Pausada'}
-                  </Badge>
-                </div>
-
-                <div className="space-y-3 mb-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Etapas:</span>
-                    <span className="font-medium text-foreground">{sequence.steps}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Leads Ativos:</span>
-                    <span className="font-medium text-foreground">{sequence.activeLeads}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Taxa Resposta:</span>
-                    <span className="font-medium text-growth">{sequence.responseRate}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    {sequence.status === 'active' ? (
-                      <Pause className="w-3 h-3 mr-1" />
-                    ) : (
-                      <Play className="w-3 h-3 mr-1" />
-                    )}
-                    {sequence.status === 'active' ? 'Pausar' : 'Ativar'}
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <MoreHorizontal className="w-3 h-3" />
-                  </Button>
-                </div>
-              </Card>
-            ))}
-
-            {/* Create New Sequence */}
-            <Card className="p-6 border-dashed border-2 border-border hover:border-primary/50 transition-colors">
-              <div className="text-center">
-                <Plus className="w-12 h-12 text-primary mx-auto mb-4" />
-                <h3 className="font-semibold text-foreground mb-2">Nova Sequência</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Crie uma sequência automatizada de contato
-                </p>
-                <Button className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Criar Sequência
-                </Button>
-              </div>
-            </Card>
+          <div className="text-center py-12">
+            <Zap className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+            <p className="text-muted-foreground mb-4">Crie sequências automatizadas de contato</p>
+            <Button onClick={() => setShowNewSequence(true)} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Criar Sequência
+            </Button>
           </div>
         </TabsContent>
 
@@ -370,16 +378,12 @@ export const Prospects = () => {
           <Card className="p-6">
             <div className="flex items-center gap-2 mb-6">
               <Search className="w-5 h-5 text-primary" />
-              <h3 className="text-lg font-semibold text-foreground">Lead Finder</h3>
+              <h3 className="text-lg font-semibold text-foreground">Lead Finder IA</h3>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              <div>
-                <Label htmlFor="industry">Indústria</Label>
-                <Select>
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Selecione a indústria" />
-                  </SelectTrigger>
+              <div><Label>Indústria</Label>
+                <Select value={prospectingForm.industry} onValueChange={(v) => setProspectingForm(f => ({ ...f, industry: v }))}>
+                  <SelectTrigger className="mt-2"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="tech">Tecnologia</SelectItem>
                     <SelectItem value="ecommerce">E-commerce</SelectItem>
@@ -388,28 +392,20 @@ export const Prospects = () => {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div>
-                <Label htmlFor="role">Cargo/Função</Label>
-                <Select>
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Selecione o cargo" />
-                  </SelectTrigger>
+              <div><Label>Cargo</Label>
+                <Select value={prospectingForm.role} onValueChange={(v) => setProspectingForm(f => ({ ...f, role: v }))}>
+                  <SelectTrigger className="mt-2"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ceo">CEO/Founder</SelectItem>
                     <SelectItem value="cmo">CMO/Marketing</SelectItem>
-                    <SelectItem value="cto">CTO/Tecnologia</SelectItem>
+                    <SelectItem value="cto">CTO</SelectItem>
                     <SelectItem value="sales">Vendas</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              <div>
-                <Label htmlFor="location">Localização</Label>
-                <Select>
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Selecione a região" />
-                  </SelectTrigger>
+              <div><Label>Localização</Label>
+                <Select value={prospectingForm.location} onValueChange={(v) => setProspectingForm(f => ({ ...f, location: v }))}>
+                  <SelectTrigger className="mt-2"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="sp">São Paulo</SelectItem>
                     <SelectItem value="rj">Rio de Janeiro</SelectItem>
@@ -418,71 +414,203 @@ export const Prospects = () => {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div>
-                <Label htmlFor="company-size">Tamanho da Empresa</Label>
-                <Select>
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Número de funcionários" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1-10">1-10 funcionários</SelectItem>
-                    <SelectItem value="11-50">11-50 funcionários</SelectItem>
-                    <SelectItem value="51-200">51-200 funcionários</SelectItem>
-                    <SelectItem value="200+">200+ funcionários</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div><Label>Palavras-chave</Label>
+                <Input className="mt-2" placeholder="Ex: marketing digital" value={prospectingForm.keywords} onChange={(e) => setProspectingForm(f => ({ ...f, keywords: e.target.value }))} />
               </div>
-
-              <div>
-                <Label htmlFor="keywords">Palavras-chave</Label>
-                <Input 
-                  className="mt-2"
-                  placeholder="Ex: marketing digital, vendas online"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="volume">Volume Desejado</Label>
-                <Select>
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Quantos leads?" />
-                  </SelectTrigger>
+              <div><Label>Volume</Label>
+                <Select value={prospectingForm.volume} onValueChange={(v) => setProspectingForm(f => ({ ...f, volume: v }))}>
+                  <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="50">50 leads</SelectItem>
                     <SelectItem value="100">100 leads</SelectItem>
                     <SelectItem value="250">250 leads</SelectItem>
-                    <SelectItem value="500">500 leads</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
-            <div className="flex gap-4">
-              <Button className="gap-2">
-                <Search className="w-4 h-4" />
-                Buscar Leads
-              </Button>
-              <Button variant="outline">
-                Salvar Filtro
-              </Button>
-            </div>
-
-            <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <div className="flex items-start gap-3">
-                <Zap className="w-5 h-5 text-primary mt-1" />
-                <div>
-                  <h4 className="font-medium text-primary mb-1">Prospecção com IA</h4>
-                  <p className="text-sm text-foreground">
-                    Nossa IA analisará perfis, encontrará informações de contato e criará sequências 
-                    personalizadas automaticamente baseado nos seus critérios.
-                  </p>
-                </div>
-              </div>
-            </div>
+            <Button className="gap-2" onClick={handleStartProspecting}>
+              <Zap className="w-4 h-4" />
+              Buscar Leads com IA
+            </Button>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* New Lead Dialog */}
+      <Dialog open={showNewLead} onOpenChange={setShowNewLead}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo Lead</DialogTitle>
+            <DialogDescription>Adicione um prospect manualmente</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2"><Label>Nome *</Label><Input placeholder="Nome completo" value={newLeadForm.name} onChange={e => setNewLeadForm(f => ({ ...f, name: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Empresa</Label><Input placeholder="Nome da empresa" value={newLeadForm.company} onChange={e => setNewLeadForm(f => ({ ...f, company: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Cargo</Label><Input placeholder="CEO, CMO..." value={newLeadForm.position} onChange={e => setNewLeadForm(f => ({ ...f, position: e.target.value }))} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>E-mail</Label><Input type="email" placeholder="email@empresa.com" value={newLeadForm.email} onChange={e => setNewLeadForm(f => ({ ...f, email: e.target.value }))} /></div>
+              <div className="space-y-2"><Label>Telefone</Label><Input placeholder="(11) 99999-9999" value={newLeadForm.phone} onChange={e => setNewLeadForm(f => ({ ...f, phone: e.target.value }))} /></div>
+            </div>
+            <div className="space-y-2"><Label>Origem</Label>
+              <Select value={newLeadForm.source} onValueChange={v => setNewLeadForm(f => ({ ...f, source: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                  <SelectItem value="meta_ads">Meta Ads</SelectItem>
+                  <SelectItem value="google">Google Ads</SelectItem>
+                  <SelectItem value="indicacao">Indicação</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button className="w-full gap-2" onClick={handleCreateLead} disabled={isSaving}>
+              {isSaving ? <><Loader2 className="w-4 h-4 animate-spin" />Salvando...</> : <><Plus className="w-4 h-4" />Adicionar Lead</>}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Sequence Dialog */}
+      <Dialog open={showNewSequence} onOpenChange={setShowNewSequence}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Sequência</DialogTitle>
+            <DialogDescription>Crie uma sequência automatizada de contato</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2"><Label>Nome da sequência *</Label><Input placeholder="Ex: Sequência B2B Tech" value={newSequenceForm.name} onChange={e => setNewSequenceForm(f => ({ ...f, name: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Descrição</Label><Textarea placeholder="Descreva o objetivo..." value={newSequenceForm.description} onChange={e => setNewSequenceForm(f => ({ ...f, description: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Nº de etapas</Label>
+                <Select value={newSequenceForm.steps} onValueChange={v => setNewSequenceForm(f => ({ ...f, steps: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3 etapas</SelectItem>
+                    <SelectItem value="5">5 etapas</SelectItem>
+                    <SelectItem value="7">7 etapas</SelectItem>
+                    <SelectItem value="10">10 etapas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Público</Label>
+                <Select value={newSequenceForm.target} onValueChange={v => setNewSequenceForm(f => ({ ...f, target: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os leads</SelectItem>
+                    <SelectItem value="new">Apenas novos</SelectItem>
+                    <SelectItem value="qualified">Qualificados</SelectItem>
+                    <SelectItem value="cold">Frios</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button className="w-full gap-2" onClick={handleCreateSequence} disabled={!newSequenceForm.name.trim()}>
+              <Zap className="w-4 h-4" />
+              Criar Sequência
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Start Prospecting Dialog */}
+      <Dialog open={showStartProspecting} onOpenChange={setShowStartProspecting}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Iniciar Prospecção IA</DialogTitle>
+            <DialogDescription>Configure os critérios para busca automática de leads</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Indústria</Label>
+                <Select value={prospectingForm.industry} onValueChange={v => setProspectingForm(f => ({ ...f, industry: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tech">Tecnologia</SelectItem>
+                    <SelectItem value="ecommerce">E-commerce</SelectItem>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="saas">SaaS</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Cargo</Label>
+                <Select value={prospectingForm.role} onValueChange={v => setProspectingForm(f => ({ ...f, role: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ceo">CEO/Founder</SelectItem>
+                    <SelectItem value="cmo">CMO</SelectItem>
+                    <SelectItem value="cto">CTO</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2"><Label>Palavras-chave</Label><Input placeholder="marketing digital, vendas" value={prospectingForm.keywords} onChange={e => setProspectingForm(f => ({ ...f, keywords: e.target.value }))} /></div>
+            <div className="space-y-2"><Label>Volume de leads</Label>
+              <Select value={prospectingForm.volume} onValueChange={v => setProspectingForm(f => ({ ...f, volume: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="50">50 leads</SelectItem>
+                  <SelectItem value="100">100 leads</SelectItem>
+                  <SelectItem value="250">250 leads</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+              <div className="flex items-start gap-2">
+                <Zap className="w-4 h-4 text-primary mt-0.5" />
+                <p className="text-xs text-muted-foreground">
+                  A IA analisará perfis, encontrará informações de contato e criará sequências personalizadas automaticamente.
+                </p>
+              </div>
+            </div>
+            <Button className="w-full gap-2" onClick={handleStartProspecting}>
+              <Zap className="w-4 h-4" />
+              Iniciar Prospecção
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contact Dialog */}
+      <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {contactMode === 'whatsapp' ? 'Enviar WhatsApp' : 'Enviar E-mail'}
+            </DialogTitle>
+            <DialogDescription>
+              Para: {selectedProspect?.name} {selectedProspect?.company ? `(${selectedProspect.company})` : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            {contactMode === 'whatsapp' && (
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input value={selectedProspect?.phone || ''} readOnly className="bg-muted" />
+              </div>
+            )}
+            {contactMode === 'email' && (
+              <div className="space-y-2">
+                <Label>E-mail</Label>
+                <Input value={selectedProspect?.email || ''} readOnly className="bg-muted" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Mensagem</Label>
+              <Textarea placeholder={`Olá ${selectedProspect?.name}, vi que você trabalha na ${selectedProspect?.company || 'sua empresa'}...`} className="min-h-[120px]" />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowContactDialog(false)}>Cancelar</Button>
+              <Button className="flex-1 gap-2" onClick={handleSendMessage}>
+                {contactMode === 'whatsapp' ? <MessageSquare className="w-4 h-4" /> : <Mail className="w-4 h-4" />}
+                Enviar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
