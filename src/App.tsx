@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import { Dashboard } from "./pages/Dashboard";
+import { Analytics } from "./pages/Analytics";
 import { Campaigns } from "./pages/Campaigns";
 import { CreateCampaign } from "./pages/CreateCampaign";
 import { Creatives } from "./pages/Creatives";
@@ -44,7 +45,7 @@ const App = () => (
             <Route path="prospects" element={<Prospects />} />
             <Route path="whatsapp" element={<WhatsAppInbox />} />
             <Route path="projects" element={<CRM />} />
-            <Route path="analytics" element={<Dashboard />} />
+            <Route path="analytics" element={<Analytics />} />
             <Route path="integrations" element={<Integrations />} />
             <Route path="workflows" element={<AgentWorkflows />} />
             <Route path="users" element={<UserManagement />} />
