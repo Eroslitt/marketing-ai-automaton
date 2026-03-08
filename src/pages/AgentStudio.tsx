@@ -76,7 +76,8 @@ export const AgentStudio = () => {
       setVoiceModel(data.voice_model || "");
       setVoiceId(data.voice_id || "");
       setVoiceSpeed([Number(data.voice_speed) || 1.0]);
-      setAgentSettings(data.settings || { learning: false, autoOptimize: true, contextPersist: true, humanHandover: true });
+      const s = data.settings as any;
+      setAgentSettings(s && typeof s === 'object' && !Array.isArray(s) ? { learning: !!s.learning, autoOptimize: !!s.autoOptimize, contextPersist: !!s.contextPersist, humanHandover: !!s.humanHandover } : { learning: false, autoOptimize: true, contextPersist: true, humanHandover: true });
     } else {
       setConfig(null);
       setName(agentMeta.name);
