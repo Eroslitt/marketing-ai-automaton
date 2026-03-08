@@ -1,26 +1,8 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { 
-  BarChart3, 
-  Briefcase, 
-  MessageSquare, 
-  PenTool, 
-  Target, 
-  Users, 
-  Settings,
-  Zap,
-  Link,
-  TrendingUp,
-  Bot,
-  Store,
-  Video,
-  Brain,
-  Network,
-  Cog,
-  Code,
-  Rocket,
-  ChevronLeft,
-  ChevronRight,
-  LogOut
+  BarChart3, Briefcase, MessageSquare, PenTool, Target, Users, Settings,
+  Zap, Link, TrendingUp, Bot, Store, Video, Brain, Network, Cog, Code,
+  Rocket, ChevronLeft, ChevronRight, LogOut, X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
+  isMobile?: boolean;
 }
 
 const navigation = [
@@ -55,7 +38,7 @@ const navigation = [
   { name: "Configurações", href: "/settings", icon: Settings },
 ];
 
-export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
+export const Sidebar = ({ isOpen, onToggle, isMobile = false }: SidebarProps) => {
   const { user, signOut } = useAuth();
   const location = useLocation();
 
@@ -66,9 +49,12 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || "Usuário";
   const userEmail = user?.email || "";
 
+  // On mobile: show full sidebar or nothing. On desktop: toggle between wide and icon.
+  const showText = isMobile ? true : isOpen;
+
   const renderNavItem = (item: typeof navigation[0]) => {
-    const isActive = item.href === "/" 
-      ? location.pathname === "/" 
+    const isActive = item.href === "/"
+      ? location.pathname === "/"
       : location.pathname.startsWith(item.href);
 
     const link = (
@@ -81,11 +67,11 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
         )}
       >
         <item.icon className="w-5 h-5 flex-shrink-0" />
-        {isOpen && <span className="text-sm truncate">{item.name}</span>}
+        {showText && <span className="text-sm truncate">{item.name}</span>}
       </NavLink>
     );
 
-    if (!isOpen) {
+    if (!showText) {
       return (
         <Tooltip key={item.name}>
           <TooltipTrigger asChild>{link}</TooltipTrigger>
@@ -97,12 +83,56 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
     return <div key={item.name}>{link}</div>;
   };
 
+  // Mobile: fixed overlay sidebar
+  if (isMobile) {
+    return (
+      <div className={cn(
+        "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border flex flex-col transition-transform duration-300",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
+        {/* Logo + Close */}
+        <div className="flex items-center justify-between h-16 px-3 border-b border-border">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Zap className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <h1 className="font-bold text-lg text-foreground truncate">AgênciaIA</h1>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onToggle} className="h-8 w-8 flex-shrink-0">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+
+        <ScrollArea className="flex-1 py-2">
+          <nav className="px-2 space-y-1">
+            {navigation.map(renderNavItem)}
+          </nav>
+        </ScrollArea>
+
+        <div className="p-3 border-t border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-medium text-primary-foreground">{userInitials}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{userName}</p>
+              <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={signOut}>
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop: collapsible sidebar
   return (
     <div className={cn(
-      "bg-card border-r border-border transition-all duration-300 flex flex-col",
+      "bg-card border-r border-border transition-all duration-300 flex flex-col flex-shrink-0",
       isOpen ? "w-64" : "w-16"
     )}>
-      {/* Logo + Toggle */}
       <div className="flex items-center justify-between h-16 px-3 border-b border-border">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -119,14 +149,12 @@ export const Sidebar = ({ isOpen, onToggle }: SidebarProps) => {
         </Button>
       </div>
 
-      {/* Navigation */}
       <ScrollArea className="flex-1 py-2">
         <nav className="px-2 space-y-1">
           {navigation.map(renderNavItem)}
         </nav>
       </ScrollArea>
 
-      {/* User info */}
       <div className="p-3 border-t border-border">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
